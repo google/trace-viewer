@@ -7,19 +7,26 @@
 git svn clone https://trace-viewer.googlecode.com/svn/trunk/ trace-viewer
 }}}
 
-3. Make a branch. Android-devs, note that this project's review system uses 1 codereview per branch. Your branch's commits are squashed on upload.
+3. Make a branch. Folks used to Android-style repo/gerrit should note that this project's review system (git cl + rietveld) uses 1 codereview per branch. Your branch's commits are squashed on upload.
 {{{
 git checkout -t -b mybranch git-svn
 }}}
 
-4a. Iteratively:
+4a. Set up a local http server, from the main trace-viewer directory:
 {{{
-... make edits
+python -m SimpleHTTPServer 8001
+}}}
+You can then run any of _test.html by browsing to http://localhost:8001/src/.
+
+4b. Iteratively:
+{{{
+... make changes
+... verify changes by running http://localhost:8001/src/tests.html
 git commit -a -m "My change"
 git cl upload
 }}}
 
-4b. If you need to update your code, foreach branch you need to update:
+4c. If you need to update your code, foreach branch you need to update:
 {{{
 git svn rebase
 }}}
