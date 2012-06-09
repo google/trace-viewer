@@ -7,7 +7,7 @@
 git svn clone https://trace-viewer.googlecode.com/svn/trunk/ trace-viewer
 }}}
 
-3. Make a branch:
+3. Make a branch. Android-devs, note that this project's review system uses 1 codereview per branch. Your branch's commits are squashed on upload.
 {{{
 git checkout -t -b mybranch git-svn
 }}}
