@@ -1,25 +1,27 @@
 #summary Contributing to trace-viewer
 
-* [http://dev.chromium.org/developers/how-tos/install-depot-tools Install the depot tools]
+1. [http://dev.chromium.org/developers/how-tos/install-depot-tools Install the depot tools]
 
-* Get the source with git svn
+2. Get the source with git svn
 {{{
 git svn clone https://trace-viewer.googlecode.com/svn/trunk/ trace-viewer
 }}}
 
-* Make a branch:
+3. Make a branch:
 {{{
 git checkout -t -b mybranch git-svn
 }}}
 
-* Iteratively:
+4. Iteratively:
 {{{
 ... make edits
 git commit -a -m "My change"
 git cl upload
 }}}
 
-* When you've gotten LGTM
+5. When you've gotten LGTM
 {{{
 git cl dcommit
 }}}
+
+6. If you need your change to appear in Chrome, remind one of the project OWNERs to rev the downstream DEPS 
