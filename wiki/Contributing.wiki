@@ -12,11 +12,16 @@ git svn clone https://trace-viewer.googlecode.com/svn/trunk/ trace-viewer
 git checkout -t -b mybranch git-svn
 }}}
 
-4. Iteratively:
+4a. Iteratively:
 {{{
 ... make edits
 git commit -a -m "My change"
 git cl upload
+}}}
+
+4b. If you need to update your code, foreach branch you need to update:
+{{{
+git svn rebase
 }}}
 
 5. When you've gotten LGTM
