@@ -1,0 +1,25 @@
+#summary Contributing to trace-viewer
+
+* [http://dev.chromium.org/developers/how-tos/install-depot-tools Install the depot tools]
+
+* Get the source with git svn
+{{{
+git svn clone https://trace-viewer.googlecode.com/svn/trunk/ trace-viewer
+}}}
+
+* Make a branch:
+{{{
+git checkout -t -b mybranch git-svn
+}}}
+
+* Iteratively:
+{{{
+... make edits
+git commit -a -m "My change"
+git cl upload
+}}}
+
+* When you've gotten LGTM
+{{{
+git cl dcommit
+}}}
