@@ -35,5 +35,6 @@ git svn rebase
 {{{
 git cl dcommit
 }}}
+If you are prompted for a username/password, use the password from [https://code.google.com/hosting/settings here].
 
 6. If you need your change to appear in Chrome, remind one of the project OWNERs to rev the downstream DEPS 
