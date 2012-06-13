@@ -38,3 +38,10 @@ git cl dcommit
 If you are prompted for a username/password, use your googlecode password from [https://code.google.com/hosting/settings here].
 
 6. If you need your change to appear in Chrome, remind one of the project OWNERs to rev the downstream DEPS 
+
+
+
+If you are editing tracing from the chrome repo, add the following lines to your trace-viewer .gitconfig:
+[svn-remote "svn"]
+        url = https://trace-viewer.googlecode.com/svn/trunk
+        fetch = :refs/remotes/git-svn
