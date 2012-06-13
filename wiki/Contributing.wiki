@@ -1,5 +1,6 @@
 #summary Contributing to trace-viewer
 
+=Basics=
 1. [http://dev.chromium.org/developers/how-tos/install-depot-tools Install the depot tools]
 
 2. Get the source with git svn
@@ -40,7 +41,7 @@ If you are prompted for a username/password, use your googlecode password from [
 6. If you need your change to appear in Chrome, remind one of the project OWNERs to rev the downstream DEPS 
 
 
-#notes Some notes
+=Some notes=
 
 * Testing full files against importer changes: put a file into test_data/, then edit and run src/interactive_tests.html. 
 
