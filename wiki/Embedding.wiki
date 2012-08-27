@@ -1,0 +1,35 @@
+#summary Embedding trace viewer
+
+Embedding trace-viewer as your own component is relatively easy.
+
+Source the trace-viewer javascript. The development way to do this is:
+{{{
+<script src="base.js"></script>
+<script>base.require('trace-viewer');</script>
+}}}
+
+To get a flattened form:
+{{{
+python ./build/flatten.py src/timeline_view.js > timeline_view_flattened.js
+}}}
+Then source that:
+{{{
+<script src="base.js"></script>
+<script>
+  base.require('trace-viewer');
+</script>
+}}}
+
+Once its loaded, TimelineView and TimelineModel are your friends:
+{{{
+document.addEventListener('DOMContentLoaded', function() {
+  var model = TimelineModel();
+  model.importTraces([... do an xhr to get the data...]);
+
+  var viewEl = tracing.TimelineView();
+  viewEl.model = model;
+  document.body.appendChild(viewEl);
+});
+}}}
+
+Take a peek at [http://code.google.com/p/trace-viewer/source/browse/trunk/src/kernel_trace_viewer.html kernel_trace_viewer.html] for an example of this in action.
