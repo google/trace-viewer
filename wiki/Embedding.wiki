@@ -32,4 +32,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 }}}
 
-Take a peek at [http://code.google.com/p/trace-viewer/source/browse/trunk/src/kernel_trace_viewer.html kernel_trace_viewer.html] for an example of this in action.
+Take a peek at [http://code.google.com/p/trace-viewer/source/browse/trunk/examples/trace_viewer.html trace_viewer.html] for an example of this in action.
