@@ -1,0 +1,136 @@
+#summary The trace-event file format
+
+At its core, a trace event file is just an array of events, dumped into a file in
+JSON. trace-viewer recognizes two representations of this array:
+  # the JSON-stringified array
+  # a JSON object with a member "traceEvents" containing the actual events.
+
+The object-wrapped format is:
+{{{
+{
+  "traceEvents": [event1,event2,...]
+  ... any metadata you want... will be ignored.
+}
+}}}
+
+The array format is:
+{{{
+[event1,event2,...]
+}}}
+
+The closing ] is optional in the array format. E.g. the following is valid:
+{{{
+[event1,event2,
+}}}
+
+This is done to support tracing systems that cannot cleanly finish writing the
+trace, e.g. during exit.
+
+
+=Trace events= 
+Events are of the following format:
+{{{
+{
+  "ph": "B" | "E" | "I" | "M"
+}
+}}}
+
+Time units are given in *microseconds*
+
+B and E type events correspond to the beginning and end of work
+on a given thread:
+{{{
+{
+  "ph": "B",
+  "ts": 1234523.3, // in microseconds
+  "pid": 2343, "tid": 2347,  // indicates event on process 2343 thread 2347
+  "name": "MyFunction", // name of function that began
+  "args": {}  // any arguments associated with the function 
+},
+{
+  "ph": "E",
+  "ts": 1234600, // in microseconds
+  "pid": 2343, "tid": 2347,  // indicates event on process 2343 thread 2347
+  "name": "MyFunction", // name of function that ended. can be optional
+}
+}}}
+
+B and E events can nest, allowing you to capture function calling behavior on a
+thread. For example, this trace is for function A that then calls function
+Asub, where Asub takes 2.8us and A takes 3us:
+{{{
+  { ..., ts=1.0, tid=1, ph="B", name="A"},
+  { ..., ts=1.1, tid=1, ph="B", name="Asub"},
+  { ..., ts=3.9, tid=1, ph="E", name=""},
+  { ..., ts=4.0, tid=1, ph="E", name=""},
+}}}
+
+Events must be sorted in timestamp order PER THREAD but can interleave
+between different threads. E.g. you can have:
+{{{
+  { ..., ts=1.0, tid=1, ph="B", name="A"},
+  { ..., ts=0.9, tid=2, ph="B", name="B"},
+  { ..., ts=1.1, tid=1, ph="E", name=""},
+  { ..., ts=4.0, tid=2, ph="E", name=""},
+}}}
+
+Sometimes, it is necessary to represent operations that are logically part of
+a thread, but that occur out-of-band with the function calling stack. For
+example, an asynchronous file/ajax/etc reques.  This is currently represented
+by B and E events with the magical argument "ui-nest". The following shows
+two asynchronous FetchEmail and CheckGPlus requests beginning and ending while also overlapping a regular RedrawScreen operation.
+{{{
+  { ..., ts=1.0, tid=1, ph="B", name="FetchEmail", args={"ui-nest":0},
+  { ..., ts=1.1, tid=1, ph="B", name="CheckGPlus", args={"ui-nest":0},
+  { ..., ts=1.2, tid=1, ph="E", name="CheckGPlus", args={"ui-nest":0},
+  { ..., ts=1.4, tid=1, ph="B", name="RedrawScreen"}
+  { ..., ts=1.8, tid=1, ph="E", name=""},
+  { ..., ts=1.6, tid=1, ph="E", name="FetchEmail", args={"ui-nest":0},
+}}}
+
+I phase events correspond to instantaneous events on a thread. For example,
+an out of memory condition:
+{{{
+{
+  "ph": "I",
+  "ts": 1234523.3, // in microseconds
+  "pid": 2343, "tid": 2347,  // indicates event on process 2343 thread 2347
+  "name": "OutOfMemory", // name of the event
+  "args": {}  // any arguments associated with the event
+}
+}}}
+
+
+M phase events are used to associate metadata with events. For example,
+to give a thread a name:
+{{{
+{
+  "ph": "M",
+  "pid": 2343,
+  "tid": 2347,
+  "name": "thread_name",
+  "args": { "name" : "RendererThread" }
+}
+}}}
+
+S and F phase events are used to represent asynchronous operations, e.g frames in a game, network or async file I/O: S and F events can start and finish on different processes. The key is for both events to agree upon a common id, which can be used to associate the events during load time.
+
+{{{
+{
+  "ph": "S",
+  "pid": 2343,
+  "tid": 2347,
+  "ts": 1234523.3, // in microseconds
+  "id": 0x100,
+  "name": "async_read",
+  "args": { "name" : "~/.bashrc" }
+},
+{
+  "ph": "F",
+  "pid": 2342,
+  "tid": 2343, // note, different thread
+  "ts": 1235523.3, // in microseconds
+  "id": 0x100,
+  "name": "async_read",
+}
+}}}
