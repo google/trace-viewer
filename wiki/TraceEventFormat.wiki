@@ -35,8 +35,10 @@ Events are of the following format:
 }
 }}}
 
+=Time units=
 Time units are given in *microseconds*
 
+=Begin/End events=
 B and E type events correspond to the beginning and end of work
 on a given thread:
 {{{
@@ -75,19 +77,9 @@ between different threads. E.g. you can have:
 }}}
 
 Sometimes, it is necessary to represent operations that are logically part of
-a thread, but that occur out-of-band with the function calling stack. For
-example, an asynchronous file/ajax/etc reques.  This is currently represented
-by B and E events with the magical argument "ui-nest". The following shows
-two asynchronous FetchEmail and CheckGPlus requests beginning and ending while also overlapping a regular RedrawScreen operation.
-{{{
-  { ..., ts=1.0, tid=1, ph="B", name="FetchEmail", args={"ui-nest":0},
-  { ..., ts=1.1, tid=1, ph="B", name="CheckGPlus", args={"ui-nest":0},
-  { ..., ts=1.2, tid=1, ph="E", name="CheckGPlus", args={"ui-nest":0},
-  { ..., ts=1.4, tid=1, ph="B", name="RedrawScreen"}
-  { ..., ts=1.8, tid=1, ph="E", name=""},
-  { ..., ts=1.6, tid=1, ph="E", name="FetchEmail", args={"ui-nest":0},
-}}}
+a thread, but that occur out-of-band with the function calling stack. For this, see the async events, described below.
 
+=Immediate Events=
 I phase events correspond to instantaneous events on a thread. For example,
 an out of memory condition:
 {{{
@@ -100,19 +92,7 @@ an out of memory condition:
 }
 }}}
 
-
-M phase events are used to associate metadata with events. For example,
-to give a thread a name:
-{{{
-{
-  "ph": "M",
-  "pid": 2343,
-  "tid": 2347,
-  "name": "thread_name",
-  "args": { "name" : "RendererThread" }
-}
-}}}
-
+=Async events=
 S and F phase events are used to represent asynchronous operations, e.g frames in a game, network or async file I/O: S and F events can start and finish on different processes. The key is for both events to agree upon a common id, which can be used to associate the events during load time.
 
 {{{
@@ -132,5 +112,45 @@ S and F phase events are used to represent asynchronous operations, e.g frames i
   "ts": 1235523.3, // in microseconds
   "id": 0x100,
   "name": "async_read",
+}
+}}}
+
+Async events can have steps in them. For example, you might begin to load from a server, then get the headers back, then finally be done. To represent that 'intermediate' step, we have the 'T' phase:
+{
+  "ph": "T",
+  "pid": 2342,
+  "tid": 2343, // note, different thread
+  "ts": 1235000.0, // in microseconds
+  "id": 0x100,
+  "name": "headers_complete",
+}
+In the UI, this would show up as a single large async_read bar, with individual steps inside it for the headers-complete stage.
+
+=Counters=
+C phase events are used for tracking a value or multiple values over time. This tracks a value moving from 0, to 10, back to zero, over a 20 microsecond time period:
+{{{
+    {name: 'ctr', args: {'value': 0}, pid: 1, ts: 0, cat: 'foo', tid: 1, ph: 'C'},
+    {name: 'ctr', args: {'value': 10}, pid: 1, ts: 10, cat: 'foo', tid: 1, ph: 'C'},
+    {name: 'ctr', args: {'value': 0}, pid: 1, ts: 20, cat: 'foo', tid: 1, ph: 'C'}
+}}}
+
+Counters can have multiple values per sample. When that happens, they are considered to be "part of a whole." E.g.
+{{{
+    {name: 'ctr', args: {'value1': 0, 'value2': 7}, pid: 1, ts: 0, cat: 'foo', tid: 1, ph: 'C'},
+    {name: 'ctr', args: {'value1': 10, 'value2': 4}, pid: 1, ts: 10, cat: 'foo', tid: 1, ph: 'C'},
+    {name: 'ctr', args: {'value1': 0, 'value2': 1 }, pid: 1, ts: 20, cat: 'foo', tid: 1, ph: 'C'}
+}}}
+In this case, value1 and value2 will be shown as a stacked area chart in the UI.
+
+=Metdata=
+M phase events are used to associate metadata with events. For example,
+to give a thread a name:
+{{{
+{
+  "ph": "M",
+  "pid": 2343,
+  "tid": 2347,
+  "name": "thread_name",
+  "args": { "name" : "RendererThread" }
 }
 }}}
