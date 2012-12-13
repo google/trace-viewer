@@ -10,14 +10,13 @@ Source the trace-viewer javascript. The development way to do this is:
 
 To get a flattened form:
 {{{
-python ./build/flatten.py src/timeline_view.js > timeline_view_flattened.js
+/build/generate_standalone_timeline_view.py --js=trace_viewer.js --css=trace_viewer.css
 }}}
-Then source that:
+
+Then bring those in:
 {{{
-<script src="base.js"></script>
-<script>
-  base.require('trace-viewer');
-</script>
+<link type="text/css" rel="stylesheet" href="trace_viewer.css">
+<script src="trace_viewer.js"></script>
 }}}
 
 Once its loaded, TimelineView and TimelineModel are your friends:
