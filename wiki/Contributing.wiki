@@ -15,9 +15,9 @@ git checkout -t -b mybranch git-svn
 
 4a. Set up a local http server, from the main trace-viewer directory:
 {{{
-python -m SimpleHTTPServer 8001
+./run_dev_server.py
 }}}
-You can then run any of _test.html by browsing to http://localhost:8001/src/.
+You can then run any of _test.html by browsing to http://localhost:8003/src/.
 
 4b. Iteratively:
 {{{
