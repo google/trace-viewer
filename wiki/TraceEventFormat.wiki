@@ -142,6 +142,16 @@ Counters can have multiple values per sample. When that happens, they are consid
 }}}
 In this case, value1 and value2 will be shown as a stacked area chart in the UI.
 
+=Objects=
+Objects and Object snapshots can be used to track an object as it is created, and evolves over time.
+
+This creates an object, takes a snapshot of it, and deletes it:
+{{{
+    {id: "0x1000", name: 'MyObject', pid: 1, ts: 0, cat: 'foo', tid: 1, ph: 'N'},
+    {id: "0x1000", name: 'MyObject', args: {snapshot: {...}}, pid: 1, ts: 10, cat: 'foo', tid: 1, ph: 'O'},
+    {id: "0x1000", name: 'MyObject', pid: 1, ts: 20, cat: 'foo', tid: 1, ph: 'D'}
+}}}
+
 =Metdata=
 M phase events are used to associate metadata with events. For example,
 to give a thread a name:
