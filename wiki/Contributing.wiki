@@ -1,25 +1,39 @@
 #summary Contributing to trace-viewer
 
-=Basics=
+=Getting the Code=
 1. [http://dev.chromium.org/developers/how-tos/install-depot-tools Install the depot tools]
 
-2. Get the source with git svn
+2. Get the source with git svn:
 {{{
 git svn clone https://trace-viewer.googlecode.com/svn/trunk/ trace-viewer
 }}}
+Make sure you have git svn installed. apt-get install git-svn if not.
 
-3. Make a branch. Folks used to Android-style repo/gerrit should note that this project's review system (git cl + rietveld) uses 1 codereview per branch. Your branch's commits are squashed on upload.
+=Getting the code, with Chromium=
+
+If you are editing tracing from chrome's third_party/trace-viewer repo, just run the following commands to set up your local repository for commits:
+{{{
+git svn init https://trace-viewer.googlecode.com/svn -Ttrunk
+git config svn-remote.svn.fetch trunk:refs/remotes/origin/master
+git config svn-remote.svn.pushurl https://trace-viewer.googlecode.com/svn
+
+git svn fetch
+}}}
+
+=Writing a patch=
+1. Make a branch. Folks used to Android-style repo/gerrit should note that this project's review system (git cl + rietveld) uses 1 codereview per branch. Your branch's commits are squashed on upload.
 {{{
 git checkout -t -b mybranch git-svn
 }}}
 
-4a. Set up a local http server, from the main trace-viewer directory:
+2. Set up the dev server. From the main trace-viewer directory:
 {{{
 ./run_dev_server.py
 }}}
+
 You can then run any of _test.html by browsing to http://localhost:8003/src/.
 
-4b. Iteratively:
+3a. Iteratively:
 {{{
 ... make changes
 ... verify changes by running http://localhost:8001/src/tests.html
@@ -27,27 +41,25 @@ git commit -a -m "My change"
 git cl upload
 }}}
 
-4c. If you need to update your code, foreach branch you need to update:
+3b. If you need to update your code, foreach branch you need to update:
 {{{
 git svn rebase
 }}}
 
-5. When you've gotten LGTM
+4. When you've gotten LGTM
 {{{
 git cl dcommit
 }}}
 If you are prompted for a username/password, use your googlecode password from [https://code.google.com/hosting/settings here].
 
-6. If you need your change to appear in Chrome, remind one of the project OWNERs to rev the downstream DEPS 
-
+=Updating Chromium's about:tracing==
+To get your change to appear in Chrome's about:tracing, commit to trace-viewer. Make a note of the svn revision you landed. Then edit Chrome's [http://src.chromium.org/chrome/trunk/src/DEPS src/DEPS] file. Look in there for a line like
+{{{
+  "src/third_party/trace-viewer":
+    (Var("googlecode_url") % "trace-viewer") + "/trunk@319",
+}}}
+Update the number to the rev you want to roll to, and [http://www.chromium.org/developers/contributing-code contribute a codereview to chrome] for the edit.
 
 =Some notes=
 
-* Testing full files against importer changes: put a file into test_data/, then edit and run src/interactive_tests.html. 
-
-* Chromium: If you are editing tracing from the chrome repo, run the following commands to setup your local repository:
-{{{
-git svn init https://trace-viewer.googlecode.com/svn -Ttrunk --rewrite-root=http://trace-viewer.googlecode.com/svn
-git config svn-remote.svn.fetch trunk:refs/remotes/origin/master
-git config svn-remote.svn.pushurl https://trace-viewer.googlecode.com/svn
-}}}
+  * Testing full files against importer changes: put a file into test_data/, then edit and run src/interactive_tests.html. 
