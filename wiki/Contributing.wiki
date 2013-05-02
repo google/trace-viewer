@@ -45,9 +45,9 @@ If you are prompted for a username/password, use your googlecode password from [
 
 * Testing full files against importer changes: put a file into test_data/, then edit and run src/interactive_tests.html. 
 
-* Chromium: If you are editing tracing from the chrome repo, add the following lines to your trace-viewer .gitconfig:
+* Chromium: If you are editing tracing from the chrome repo, run the following commands to setup your local repository:
 {{{
-[svn-remote "svn"]
-        url = https://trace-viewer.googlecode.com/svn/trunk
-        fetch = :refs/remotes/git-svn
+git svn init https://trace-viewer.googlecode.com/svn -Ttrunk --rewrite-root=http://trace-viewer.googlecode.com/svn
+git config svn-remote.svn.fetch trunk:refs/remotes/origin/master
+git config svn-remote.svn.pushurl https://trace-viewer.googlecode.com/svn
 }}}
