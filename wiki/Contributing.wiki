@@ -59,12 +59,11 @@ If you run the `run_dev_server.py` script in the root directory
 then navigate to `localhost:8003/examples/trace_viewer.html` you should be
 able to see an example trace. 
 
-If you want to see other data, edit `trace_viewer.html` and change the line which sets filenames near the bottom. Change the
-`../test_data/simple_trace.json` to the path to another json file and reload the
-page. There are a few different files in `test_data/` that can be used for
-this purpose. It isn't possible to run a new trace from the
-example file as `chrome://tracing` has to be built directly into chrome to
-have the needed access.
+There is a drop-down at the top of the screen that will allow you to select
+other trace data to view.
+
+It isn't possible to run a new trace from the example file as `chrome://tracing`
+has to be built directly into chrome to have the needed access.
 
 =Updating Chromium's about:tracing==
 To get your change to appear in Chrome's about:tracing, commit to trace-viewer. Make a note of the svn revision you landed. Then edit Chrome's [http://src.chromium.org/chrome/trunk/src/DEPS src/DEPS] file. Look in there for a line like
