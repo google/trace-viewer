@@ -13,7 +13,7 @@ Make sure you have git svn installed. `apt-get install git-svn` if not.  The loc
 
 If you are editing tracing from chrome's third_party/trace-viewer repo, just run the following commands to set up your local repository for commits:
 {{{
-git svn init https://trace-viewer.googlecode.com/svn -Ttrunk
+git svn init http://trace-viewer.googlecode.com/svn -Ttrunk
 git config svn-remote.svn.fetch trunk:refs/remotes/origin/master
 git config svn-remote.svn.pushurl https://trace-viewer.googlecode.com/svn
 
