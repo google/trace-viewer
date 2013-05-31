@@ -143,13 +143,48 @@ Counters can have multiple values per sample. When that happens, they are consid
 In this case, value1 and value2 will be shown as a stacked area chart in the UI.
 
 =Objects=
-Objects and Object snapshots can be used to track an object as it is created, and evolves over time.
+Objects are a building block to track complex data structures in traces. Since traces go for long periods of time, the formative concept for this is a way to identify objects in a time varying way. To identify an object, you need to give it an id, usually its pointer, e.g. id: "0x1000". But, in a long running trace, or just a trace with a clever allocator, a raw pointer 0x1000 might refers to two different objects at two different points in time.
 
-This creates an object, takes a snapshot of it, and deletes it:
+In trace_event, we think in terms of object instances. E.g. in C++, given class Foo , new Foo() at 0x1000 is an instance of foo. Tracing has opcodes to indicate when an object instance comes into being,  with a given identifier, and when it dies. This sequence of events shows MyObject 0x1000 that is alive from ts=0 to ts=20:
 {{{
     {id: "0x1000", name: 'MyObject', pid: 1, ts: 0, cat: 'foo', tid: 1, ph: 'N'},
-    {id: "0x1000", name: 'MyObject', args: {snapshot: {...}}, pid: 1, ts: 10, cat: 'foo', tid: 1, ph: 'O'},
     {id: "0x1000", name: 'MyObject', pid: 1, ts: 20, cat: 'foo', tid: 1, ph: 'D'}
+}}}
+
+Objects, like slices, obey the convention of the start time being inclusive, the deletion time being exclusive. So, if we also had this set of events in addition to the MyObject events:
+{{{
+    {id: "0x1000", name: 'MyOtherObject', pid: 1, ts: 20, cat: 'foo', tid: 1, ph: 'N'},
+    {id: "0x1000", name: 'MyOtherObject', pid: 1, ts: 25, cat: 'foo', tid: 1, ph: 'D'}
+}}}
+
+Then, a ref at ts=20 points at MyOtherObject instance, not MyObject.
+
+=Object Snapshots=
+The object instance commands, you will notice, do not have args: {} fields. Meaning, you cannot associate
+data with object instances. This may seem silly, until you think about how traces are time varying. In software, very few things stay constant for their lifetime --- rather they vary over time. But, you can dump it into a trace at a given instant in time. This is called a snapshot:
+{{{
+    {id: "0x1000", name: 'MyObject', args: {snapshot: {...}}, pid: 1, ts: 10, cat: 'foo', tid: 1, ph: 'O'},
+}}}
+The ellipsis inside the snapshot field can be anything you want, as much as you want. You can, for instance, put a complete dump of your rendering system into the snapshot.
+
+=Object References=
+Objects get useful when you start getting them to point at each other. In trace event, any event that takes args, e.g. slice, async slice, snapshot, will be scanned after load for fields of the form:
+{{{
+   fieldName: {id_ref: id_value}
+}}}
+For example, like this slice:
+{{{
+    {id: "0x1000", name: 'SliceA', pid: 1, ts: 10, cat: 'foo', tid: 1, ph: 'B', args: { obj: {id_ref: "0x1000"}}},
+    {id: "0x1000", name: 'SliceA', pid: 1, ts: 15, cat: 'foo', tid: 1, ph: 'E'}
+}}}
+The importing system will look for an id that is alive at ts=10, then look for a snapshot that was taken at ts=10, and replace the {id_ref...} object with the actual object snapshot at runtime.
+
+If an object is created at ts=0, and has snapshots at 10, 20, and is deleted at 30, then refs bind in the following way:
+{{{
+   ref at ts=5   -> snapshot from ts=10
+   ref at ts=15 -> snapshot at ts=10
+   ref at ts=20 -> snapshot at ts=20
+   ref at ts=25 -> snapshot at ts=20
 }}}
 
 =Metdata=
