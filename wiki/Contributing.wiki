@@ -3,15 +3,15 @@
 =Getting the Code=
 1. [http://dev.chromium.org/developers/how-tos/install-depot-tools Install the depot tools]
 
-2. Get the source with git svn:
+2. Make sure you have git svn installed. `apt-get install git-svn` if not.  The local copy of the source will be a git repository, all the normal git commands work locally.  The special git svn commands are only needed when connecting to the legacy remote server.
+
+3. Get the source:
 {{{
-git svn clone https://trace-viewer.googlecode.com/svn/trunk/ trace-viewer
+git clone https://chromium.googlesource.com/external/trace-viewer.git
 }}}
-Make sure you have git svn installed. `apt-get install git-svn` if not.  The local copy of the source will be a git repository, all the normal git commands work locally.  The special git svn commands are only needed when connecting to the legacy remote server.
+If you have a Chromium checkout, just cd to third_party/trace-viewer
 
-=Getting the code, with Chromium=
-
-If you are editing tracing from chrome's third_party/trace-viewer repo, just run the following commands to set up your local repository for commits:
+4. Optionally, set your repo up for committing:
 {{{
 git svn init http://trace-viewer.googlecode.com/svn -Ttrunk
 git config svn-remote.svn.fetch trunk:refs/remotes/origin/master
