@@ -1,0 +1,90 @@
+#summary How to write trace viewer components
+
+Trace viewer components are trying to evolve toward a "Web components" design, but aren't there yet. Here's how we do things now....
+
+=Principles=
+We care the most about the public interface of the component.
+
+Properties:
+# Properties should be settable in any order
+# Properties can be backed by a member variable of the same name, e.g. set foo() -> this.foo_. If their use is super trivial, e.g. just passthrough to some other property, then its okay to not store it as a member variable.
+# Properties should come with getters, unless it is non-sensical. If you dont "need it" you should still write it.
+
+Events:
+# The component should dispatch events when it changes internally, but not all properties need to dispatch change events
+
+class-names-are-like-this
+
+
+=Preliminaries=
+This is a basic span that has a red background color and a label that we can set:
+
+{{{
+require('red_span.css');
+
+var RedSpan = ui.define('red-span');
+RedSpan.prototype = {
+  __proto__: HTMLUnknownElement,
+  decorate: function() {
+    this.spanLabel_ = undefined;
+  },
+
+  get spanLabel() {
+    return this.spanLabel_;
+  },
+  set spanLabel(spanLabel) {
+    this.spanLabel_ = spanLabel;
+    this.textContents = "span: " + this.spanLabel_;
+  }
+}
+}}}
+
+Here we cache the spanLabel_ value as a property because the assignment to textContents is destructive.
+
+The css is
+{{{
+red-span { // prefer styling using the tag name
+  display: span;
+  background-color: red;
+}
+}}}
+
+=Multiple fields=
+Sometimes, you'll have a few fields whose combined value defines the component. We typically use an updateContents_ design pattern for this:
+
+{{{
+  decorate: function() {
+    this.prefix_ = 'span: '; // we prefer to set defaults here, not on the prototype.
+    this.spanLabel_ = undefined; // and we set them even when they're undefined.
+  },
+
+  get prefix() {
+    return this.prefix_;
+  },
+  set prefix(prefix) {
+    this.prefix_ = prefix;
+    this.updateContents_();
+  }
+
+  get spanLabel() {
+    return this.spanLabel_;
+  },
+  set spanLabel(value) {
+    this.spanLabel_ = spanLabel;
+    this.updateContents_();
+  }
+  updateContents_: function() {
+    this.textContents = this.prefix_ + this.spanLabel_;
+  }
+}}}
+
+=Graceful failure of missing properties=
+If a property can be unset, then updateContents_ should fail without exploding.
+
+If a property has invalid values, the setter should raise an exception before letting the value be assigned.
+
+
+=Complex update calculations=
+Sometimes the repeated calling of updateContents_ is too costly. TWo options:
+1. add a setter for the pair of properties that are often set together. E.g., setPrefixAndSpanLabel(span, spanLabel).
+2. scheduleUpdateContents_() from the setters and have the scheduler use base.requestAnimationFrameInThisFrameIfPossible to call the actual updateContents_ function.
