@@ -40,8 +40,7 @@ You can then run any of _test.html by browsing to http://localhost:8003/src/.
 git commit -a -m "My change"
 git cl upload
 }}}
-Note that running the tests or any `build/generate_*` script creates
-`src/deps.js` which should be checked into SVN.
+The change-list will be uploaded to https://codereview.appspot.com.
 
 3b. To update your local repository, first ensure that you have no uncommitted changes then `git checkout master`.  Then update using
 {{{
