@@ -19,7 +19,7 @@ Then bring those in:
 <script src="trace_viewer.js"></script>
 }}}
 
-Once its loaded, TimelineView and Model are your friends:
+Once its loaded, !TimelineView and Model are your friends:
 {{{
 document.addEventListener('DOMContentLoaded', function() {
   var model = Model();
