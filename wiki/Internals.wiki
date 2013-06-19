@@ -14,6 +14,7 @@
 
  * See unittest.js -- mostly compatible with closure tests
  * Does not support async tests
+ * See Testing for more information
 
 = Framework =
 
