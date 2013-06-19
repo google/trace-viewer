@@ -1,0 +1,61 @@
+#summary Overview of HTML template usage in trace-viewer.
+#labels Phase-Design,Phase-Implementation
+
+= Introduction =
+
+The trace-viewer framework has the ability to define HTML content inside HTML templates. These templates are stored in separate `.html` files making them easier to edit and maintain.
+
+= Usage =
+
+As an example, we'll take a look at the `tracing/category_filter_dialog` which has a simple HTML template associated with it.
+
+{{{
+<!--
+Copyright (c) 2013 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<template id="view-category-filter-dialog-template">
+  <div class="category-filter-dialog">
+    Select active categories:
+    <form class="category-filter-dialog-form">
+      <div class="categories">
+      </div>
+    </form>
+  </div>
+</template>
+}}}
+
+By convention, each template has been given an `id` with the template name and `-template` appended. In this case `view-category-filter-dialog-template`.
+
+If there are multiple templates needed for a given feature, those templates all live in the same file. An example of this can been seen in `tracing/timeline_view.html`
+
+Usage of the template is pretty simple. First, we need to tell the framework that a given JS file has an associated template. This is done by adding a `requireTemplate` call at the top of the file (along with the the other `requireStylesheet` and `require` calls).
+
+{{{
+base.requireTemplate('tracing.category_filter_dialog');
+}}}
+
+With the template required we can now start using it. The first step is to add the templates contents into the DOM as the children of the current element. We do this near the beginning of the `decorate` method for a given element.
+
+{{{
+var node = base.instantiateTemplate('#view-category-filter-dialog-template');
+this.appendChild(node);
+}}}
+
+The parameter pass to `instantiateTemplate` is the CSS selector that will identify the template to be attached. The templates contents will be cloned, so you can instantiate it multiple times if desired. We then appended the contents to the current element.
+
+Once the template content is appended we can use the normal DOM selectors to access the elements.
+
+{{{
+this.formEl_ = this.querySelector('form');
+}}}
+
+Currently, if you create/edit the template files, the `about_tracing.html` file will need to be re-generated. This is done because the templates are, currently, all inserted directly into the file.
+
+This generation can be done by executing:
+
+{{{
+build/generate_about_tracing_contents.py
+}}}
