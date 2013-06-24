@@ -7,18 +7,18 @@ We care the most about the public interface of the component.
 
 Properties:
   # Properties should be settable in any order
-  # Properties can be backed by a member variable of the same name, e.g. set foo() -> this.foo_. If their use is super trivial, e.g. just passthrough to some other property, then its okay to not store it as a member variable.
+  # Properties can be backed by a member variable of the same name, e.g. set foo() -> this.foo`_`. If their use is super trivial, e.g. just passthrough to some other property, then its okay to not store it as a member variable. If you call bind(this) on the properties, the member variable is still called this.foo`_`.
   # Properties should come with getters, unless it is non-sensical. If you don't "need it" you should still write it.
 
 Events:
   # The component should dispatch events when it changes internally, but not all properties need to dispatch change events
 
 Property Declaration Order:
-  # __proto__ 
+  # `__`proto`__`
   # decorate() 
   # getter/setter pairs
   # public methods
-  # private methods, post-pended with underbar_
+  # private methods, post-pended with underbar`_`
 
 
 =Preliminaries=
@@ -44,7 +44,7 @@ RedSpan.prototype = {
 }
 }}}
 
-Here we cache the spanLabel_ value as a property because the assignment to textContents is destructive.
+Here we cache the spanLabel`_` value as a property because the assignment to textContents is destructive.
 
 The css is
 {{{
@@ -55,7 +55,7 @@ red-span { // prefer styling using the tag name
 }}}
 
 =Multiple fields=
-Sometimes, you'll have a few fields whose combined value defines the component. We typically use an updateContents_ design pattern for this:
+Sometimes, you'll have a few fields whose combined value defines the component. We typically use an updateContents`_` design pattern for this:
 
 {{{
   decorate: function() {
@@ -84,12 +84,12 @@ Sometimes, you'll have a few fields whose combined value defines the component. 
 }}}
 
 =Graceful failure of missing properties=
-If a property can be unset, then updateContents_ should fail without exploding.
+If a property can be unset, then updateContents`_` should fail without exploding.
 
 If a property has invalid values, the setter should raise an exception before letting the value be assigned.
 
 
 =Complex update calculations=
-Sometimes the repeated calling of updateContents_ is too costly. Two options:
+Sometimes the repeated calling of updateContents`_` is too costly. Two options:
   # add a setter for the pair of properties that are often set together. E.g., setPrefixAndSpanLabel(span, spanLabel), or
-  # scheduleUpdateContents_() from the setters and have the scheduler use base.requestAnimationFrameInThisFrameIfPossible to call the actual updateContents_ function.
+  # scheduleUpdateContents`_`() from the setters and have the scheduler use base.requestAnimationFrameInThisFrameIfPossible to call the actual updateContents`_` function.
