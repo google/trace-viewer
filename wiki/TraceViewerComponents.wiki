@@ -1,27 +1,40 @@
 #summary How to write trace viewer components
 
-Trace viewer components are trying to evolve toward a "Web components" design, but aren't there yet. Here's how we do things now....
+Trace viewer components are trying to evolve toward a "Web components" design, but aren't there yet. We use a very closure-style design, where components are very strict gardens, and javascript is the only way to communicate between the.
 
 =Principles=
-We care the most about the public interface of the component.
+We care the most about the public interface of the component. Make sure that it is minimal, and sealed. Users of the component should never reach inside the component, ever, and internal implementation details of the component should never be made visible to external users.
 
-Properties:
+tldr, never ever ever use querySelector. Mutate/access html attributes/childlist elements directly only iff the object is designed for it, e.g. ui/list_view.
+
+
+=Events and Properties=
   # Properties should be settable in any order
   # Properties can be backed by a member variable of the same name, e.g. set foo() -> this.foo`_`. If their use is super trivial, e.g. just passthrough to some other property, then its okay to not store it as a member variable. If you call bind(this) on the properties, the member variable is still called this.foo`_`.
   # Properties should come with getters, unless it is non-sensical. If you don't "need it" you should still write it.
 
-Events:
-  # The component should dispatch events when it changes internally, but not all properties need to dispatch change events
+Components should dispatch events for changes it makes to to publically visible attributes, if it makes sense. Not all properties need to dispatch change events. Internal only properties should not dispatch public events, if at all possible.
 
-Property Declaration Order:
+Properties should be limited to the absolute minimum. Properties that exist simply to propagate change events between internal parts of a component should be suffixed with an underscore, eg myInternalProperty_.
+
+=Property declaration order=
   # `__`proto`__`
   # decorate() 
   # getter/setter pairs
   # public methods
   # private methods, post-pended with underbar`_`
 
+=Component boundaries, scoping=
+Never reach outside your class into another component, using querySelector/querySelectorAll. Add properties, methods to the component you're interacting.
 
-=Preliminaries=
+CSS should be localized, whenever possible.
+
+A component should work regardless of its parent. If there is specific behavior defined between a pair of components, then the "owner"/"creator" of the components should define that relationship, not the individual components.
+
+tldr, most of your css should of the form: "component-name", or "component > direct-component-child". Dont go poking deeper unless you have a darn good reason.
+
+ 
+=Putting it together=
 This is a basic span that has a red background color and a label that we can set:
 
 {{{
