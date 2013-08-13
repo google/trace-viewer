@@ -52,6 +52,12 @@
     * Counters (the clock frequency was 1.2ghz at ts=0.1s)
  * We want to keep the model as-free of backpointers as possible. So, slices don’t know their parent thread, for example. This helps toJSON-conversion, but is good for memory as well.
 
+= Slice =
+A slice is something which consumes time synchronously on a CPU or a thread. The canonical example of this would be a B/E event pair. An async operation is also considered a slice. Things get a bit more murky when looking at instant events. A thread scoped instant event is a duration 0 slice. Other instant events, process or global scoped, don't correlate to a thread or CPU and aren't considered slices.
+
+A flow event, on the other hand, is not a slice. It doesn't consume time and is, conceptually, a graph of data flow in the system.
+
+
 = Slice groups =
 
  * When you see the tracing UI, you see lots of things like this:
