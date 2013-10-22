@@ -15,7 +15,7 @@ tldr, never ever ever use querySelector. Mutate/access html attributes/childlist
 
 Components should dispatch events for changes it makes to to publically visible attributes, if it makes sense. Not all properties need to dispatch change events. Internal only properties should not dispatch public events, if at all possible.
 
-Properties should be limited to the absolute minimum. Properties that exist simply to propagate change events between internal parts of a component should be suffixed with an underscore, eg `myInternalProperty_`.
+Properties should be limited to the absolute minimum. Properties that exist simply to propagate change events between internal parts of a component should be suffixed with an underscore, eg myInternalProperty`_`.
 
 =Property declaration order=
   # `__`proto`__`
