@@ -1,6 +1,6 @@
 #summary How to write trace viewer components
 
-Trace viewer components are trying to evolve toward a "Web components" design, but aren't there yet. We use a very closure-style design, where components are very strict gardens, and javascript is the only way to communicate between the.
+Trace viewer components are trying to evolve toward a "Web components" design, but aren't there yet. We use a very closure-style design, where components are very strict gardens, and javascript is the only way to communicate between them.
 
 =Principles=
 We care the most about the public interface of the component. Make sure that it is minimal, and sealed. Users of the component should never reach inside the component, ever, and internal implementation details of the component should never be made visible to external users.
