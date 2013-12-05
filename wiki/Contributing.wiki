@@ -23,7 +23,7 @@ git svn fetch
 =Writing a patch=
 1. Make a branch. Folks used to Android-style repo/gerrit should note that this project's review system (git cl + rietveld) uses 1 codereview per branch. Your branch's commits are squashed on upload.
 {{{
-git checkout -t -b mybranch git-svn
+git checkout -t -b mybranch origin/master
 }}}
 
 2. Set up the dev server. From the main trace-viewer directory:
