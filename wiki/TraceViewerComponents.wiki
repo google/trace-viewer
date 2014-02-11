@@ -1,11 +1,57 @@
 #summary How to write trace viewer components
 
-The trace viewer component model, tvcm, is a simplified component model. It uses a closure-inspired design pattern: javascript modules, with dependencies requires. It has a python-based build system that is used to host a local development server as well as flatten/vulcanize the resulting code.
+The trace viewer component model, tvcm, is a simplified component model. It uses a closure-inspired design pattern: javascript modules, with dependencies requires. It has a python-based build system that is used to host a local development server as well as flatten/vulcanize the resulting code. To someone familiar with polymer, tvcm is like a polymer-lite: it is missing custom element integration, data binding primitives and isolation primitives: components are created without a shadow, and primitives for templating are provided, but the onus is on the individual JS components to use those pieces in a healthy way.
+
+=tvcm components=
+{{{
+tvcm.require('some_namespace.other_module');
+tvcm.requireStyleSheet('red_span.css');
+tvcm.requireTemplate('red_span.html');
+
+tvcm.exportTo('my_ns', function() {
+
+  var RedSpan = tvcm.ui.define('red-span');
+  RedSpan.prototype = {
+    __proto__: HTMLUnknownElement,
+    decorate: function() {
+      this.appendChild(base.instantiateTemplate('#red-span-template'));
+    },
+
+    get spanLabel() {
+      return this.spanLabel_;
+    },
+    set spanLabel(spanLabel) {
+      var labelEl = this.querySelector('#label');
+      labelEl.textContent = this.spanLabel_;
+    }
+  };
+
+  return {
+    RedSpan: RedSpan;
+  };
+});
+}}}
+
+The css is
+{{{
+red-span { // prefer styling using the tag name
+  display: span;
+  background-color: red;
+}
+}}}
+
+The html template might be:
+{{{
+<template id="red-span-template">
+  Span: <span id="label"></span>
+</template>
+}}}
+
 
 =Principles=
-We care the most about the public interface of the component. Make sure that it is minimal, and sealed. Users of the component should never reach inside the component, ever, and internal implementation details of the component should never be made visible to external users.
+We care the most about the public interface of the component. Make sure that it is minimal, and sealed. Code should *never* reach across multiple components, using JS, selectors, or magic. We want the internal implementation details of the component to stay sealed: pretend that a component's contents are in its shadow, if you can --- not even tests should reach inside, except via public methods exposed by testing.
 
-tldr, never ever ever use querySelector. Mutate/access html attributes/childlist elements directly only iff the object is designed for it, e.g. ui/list_view.
+*Never* ever ever use querySelector, or use selectors to style across components. Mutate/access html attributes/childlist elements directly only iff the object is designed for it, e.g. ui/list_view.
 
 
 =Events and Properties=
@@ -32,40 +78,7 @@ CSS should be localized, whenever possible.
 A component should work regardless of its parent. If there is specific behavior defined between a pair of components, then the "owner"/"creator" of the components should define that relationship, not the individual components.
 
 tldr, most of your css should of the form: "component-name", or "component > direct-component-child". Dont go poking deeper unless you have a darn good reason.
-
  
-=Putting it together=
-This is a basic span that has a red background color and a label that we can set:
-
-{{{
-tvcm.require('red_span.css');
-
-var RedSpan = tvcm.ui.define('red-span');
-RedSpan.prototype = {
-  __proto__: HTMLUnknownElement,
-  decorate: function() {
-    this.spanLabel_ = undefined;
-  },
-
-  get spanLabel() {
-    return this.spanLabel_;
-  },
-  set spanLabel(spanLabel) {
-    this.spanLabel_ = spanLabel;
-    this.textContents = "span: " + this.spanLabel_;
-  }
-}
-}}}
-
-Here we cache the spanLabel`_` value as a property because the assignment to textContents is destructive.
-
-The css is
-{{{
-red-span { // prefer styling using the tag name
-  display: span;
-  background-color: red;
-}
-}}}
 
 =Multiple fields=
 Sometimes, you'll have a few fields whose combined value defines the component. We typically use an updateContents`_` design pattern for this:
@@ -95,6 +108,11 @@ Sometimes, you'll have a few fields whose combined value defines the component. 
     this.textContents = this.prefix_ + this.spanLabel_;
   }
 }}}
+
+=Testing=
+Do not reach into a component using selectors or direct child manipulation to make a unit test. A common mistake is for component writers to write tests that make huge and sweeping assumptions about how their component's children are set up, making future alterations to its implementation nightmarish.
+
+If needed, separate out DOM creation code from data manipulation code, unit test the data manipulation code and create enough synthetic data to only lightly test the UI. this.addHTMLOutput(el) is a useful primitive: it lets you instantiate your component so you can interactively fiddle with it until it works well-enough.
 
 =Graceful failure of missing properties=
 If a property can be unset, then updateContents`_` should fail without exploding.
