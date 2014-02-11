@@ -1,6 +1,6 @@
 #summary How to write trace viewer components
 
-Trace viewer components are trying to evolve toward a "Web components" design, but aren't there yet. We use a very closure-style design, where components are very strict gardens, and javascript is the only way to communicate between them.
+The trace viewer component model, tvcm, is a simplified component model. It uses a closure-inspired design pattern: javascript modules, with dependencies requires. It has a python-based build system that is used to host a local development server as well as flatten/vulcanize the resulting code.
 
 =Principles=
 We care the most about the public interface of the component. Make sure that it is minimal, and sealed. Users of the component should never reach inside the component, ever, and internal implementation details of the component should never be made visible to external users.
@@ -38,9 +38,9 @@ tldr, most of your css should of the form: "component-name", or "component > dir
 This is a basic span that has a red background color and a label that we can set:
 
 {{{
-require('red_span.css');
+tvcm.require('red_span.css');
 
-var RedSpan = ui.define('red-span');
+var RedSpan = tvcm.ui.define('red-span');
 RedSpan.prototype = {
   __proto__: HTMLUnknownElement,
   decorate: function() {
