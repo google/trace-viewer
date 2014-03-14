@@ -52,7 +52,10 @@ For each local branch, rebase them to the new master branch, eg `git rebase mast
 {{{
 git cl dcommit
 }}}
-If you are prompted for a username/password, use your googlecode password from [https://code.google.com/hosting/settings here].
+
+If you are prompted for a username/password, use your *googlecode password* from [https://code.google.com/hosting/settings here].
+
+*Note!!!* This is *NOT the same password* as you use for regular chromium commits. The chromium ecosystem has different passwords for different occasions just to keep you on your toes. For trace-viewer, you need your googlecode password. Most chromium commits use the chromium-access password. Confusing, yes!
 
 = Working with examples page =
 The  `examples/trace_viewer.html` is a standalone Web page simulating
