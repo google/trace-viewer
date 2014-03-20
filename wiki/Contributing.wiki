@@ -31,7 +31,10 @@ git checkout -t -b mybranch origin/master
 ./run_dev_server.py
 }}}
 
-You can then run any of _test.html by browsing to http://localhost:8003/src/.
+You can now run a "fake instance" of tracing by going to http://localhost:8003/examples/trace_viewer.html ... this will show any file in ./test_data/.
+
+Trace viewer is heavily unit tests. You can run any of the tests by browsing to http://localhost:8003/.
+
 
 3a. Iteratively:
 {{{
