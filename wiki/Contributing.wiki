@@ -60,6 +60,11 @@ If you are prompted for a username/password, use your *googlecode password* from
 
 *Note!!!* This is *NOT the same password* as you use for regular chromium commits. The chromium ecosystem has different passwords for different occasions just to keep you on your toes. For trace-viewer, you need your googlecode password. Most chromium commits use the chromium-access password. Confusing, yes!
 
+= Legal =
+If you're new to the chromium-family of projects, you will also need to sign the chrome contributors license agreement. You can sign the [https://code.google.com/legal/individual-cla-v1.0.html Contributor License Agreement], which you can do online. It only takes a minute. If you are contributing on behalf of a corporation, you must fill out the [https://code.google.com/legal/corporate-cla-v1.0.html Corporate Contributor License Agreement] and send it to us as described on that page.
+
+If you've never submitted code before, you must add your (or your organization's) name and contact info to the Chromium AUTHORS file.
+
 = Working with examples page =
 The  `examples/trace_viewer.html` is a standalone Web page simulating
 the `about:tracing` page with canned tracing data.
