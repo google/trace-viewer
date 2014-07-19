@@ -13,7 +13,7 @@ If you have a Chromium checkout, just cd to third_party/trace-viewer
 
 4. Optionally, set your repo up for committing:
 {{{
-git svn init http://trace-viewer.googlecode.com/svn -Ttrunk --prefix=origin
+git svn init https://trace-viewer.googlecode.com/svn -Ttrunk --prefix=origin
 git config svn-remote.svn.fetch trunk:refs/remotes/origin/master
 git config svn-remote.svn.pushurl https://trace-viewer.googlecode.com/svn
 
