@@ -3,25 +3,21 @@
 
 = Introduction =
 
-Trace viewer has a simple, synchronous, testing framework. The bulk of the framework exists in `base/unittest.js` with the assertions in `base/unittest/assertions.js`.
+Trace viewer has a simple, optionally asynchronous, testing framework. The bulk of the framework exists in `tvcm/unittest.html` with the assertions in `tvcm/unittest/assertions.html`.
 
-Test files exist in `<filename>_test.js` files where, typically, filename will match the name of the file being tested. The tests sit in the same folder as their respective files.
+Test files exist in `<filename>_test.html` files where, typically, filename will match the name of the file being tested. The tests sit in the same folder as their respective files.
 
 
 = Test Creation =
 
-The general structure of tests is (assuming a file of ui/foo_test.js):
+The general structure of tests is (assuming a file of ui/foo_test.html):
 
 {{{
-base.require('ui.foo');
-
+<link rel="import" href="/ui/foo.html">
+<script>
 'use strict';
 
-base.unittest.testSuite('ui.foo', function() {
-  setup(function() {
-    // stuff to do before every test.
-  });
-
+tvcm.unittest.testSuite(function() {
   test('instantiate', function() {
     var myFoo = ui.Foo();
     this.addHTMLOutput(myFoo);
@@ -32,7 +28,9 @@ base.unittest.testSuite('ui.foo', function() {
 });
 }}}
 
-Generally, there is one test suite per file (there is an assumption inside the code that this is true). If you add something to the DOM with `appendChild` you should remove it. The exception is if you use `this.addHTMLOutput(element)`. If you use that, then you should be good, the content will get shown if there is an error, otherwise it's hidden.
+Generally, there is one test suite per file (there is an assumption inside the code that this is true).
+
+If you add something to the DOM with `appendChild` you should remove it. The exception is if you use `this.addHTMLOutput(element)`. If you use that, then you should be good, the content will get shown if there is an error, otherwise it's hidden.
 
 The current tests follow the convention that if the test is there just to draw things, to name them with a prefix of instantiate. So, `instantiate`, `instantiate_multiRow`, etc.
 
@@ -41,19 +39,19 @@ The current tests follow the convention that if the test is there just to draw t
 === Running all tests ===
 
 {{{
-localhost:8003/test.html
+localhost:8003/tests.html
 }}}
 
 === Running an individual test suite (such as `ui/foo_test.js`) ===
 
 {{{
-localhost:8003/test.html?suite=ui/foo
+localhost:8003/test.html?testSuiteName=ui.foo
 }}}
 
-=== Running just a single test within a suite ===
+=== Running tests named blah ===
 
 {{{
-localhost:8003/test.html?suite=ui/foo&test=blah
+localhost:8003/test.html?testFilterString=blah
 }}}
 
 = Options =
