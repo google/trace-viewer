@@ -2,7 +2,7 @@
 
 Trace viewer is based on HTML imports and Polymer, but has some baggage from being a project that has been around a while.
 
-Modules in trace viewer are written as html files, with imports to other files. Everyone hacking on trace viewer runs the same local development server, which mostly exists so that our custom unit test harness still works.
+Modules in trace viewer are written as html files, with imports to other files. Every foo.html comes with foo_test.html, and you can either run the tests by going to http://localhost:8003/, or by using ./run_tests from the commandline.
 
 New DOM-based components in trace viewer should be written as polymer components. There exist old
 components in trace viewer that are written with our older pre-polymer component model. Where convenient, please consider upgrading those components to polymer.
