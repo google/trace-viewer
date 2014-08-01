@@ -1,74 +1,34 @@
 #summary How to write trace viewer components
 
-The trace viewer component model, tvcm, is a simplified component model. It uses a closure-inspired design pattern: javascript modules, with dependencies requires. It has a python-based build system that is used to host a local development server as well as flatten/vulcanize the resulting code. To someone familiar with polymer, tvcm is like a polymer-lite: it is missing custom element integration, data binding primitives and isolation primitives: components are created without a shadow, and primitives for templating are provided, but the onus is on the individual JS components to use those pieces in a healthy way.
+Trace viewer is based on HTML imports and Polymer, but has some baggage from being a project that has been around a while.
 
-=tvcm components=
-{{{
-tvcm.require('some_namespace.other_module');
-tvcm.requireStyleSheet('red_span.css');
-tvcm.requireTemplate('red_span.html');
+Modules in trace viewer are written as html files, with imports to other files. Everyone hacking on trace viewer runs the same local development server, which mostly exists so that our custom unit test harness still works.
 
-tvcm.exportTo('my_ns', function() {
+New DOM-based components in trace viewer should be written as polymer components. There exist old
+components in trace viewer that are written with our older pre-polymer component model. Where convenient, please consider upgrading those components to polymer.
 
-  var RedSpan = tvcm.ui.define('red-span');
-  RedSpan.prototype = {
-    __proto__: HTMLUnknownElement,
-    decorate: function() {
-      this.appendChild(base.instantiateTemplate('#red-span-template'));
-    },
-
-    get spanLabel() {
-      return this.spanLabel_;
-    },
-    set spanLabel(spanLabel) {
-      var labelEl = this.querySelector('#label');
-      labelEl.textContent = this.spanLabel_;
-    }
-  };
-
-  return {
-    RedSpan: RedSpan;
-  };
-});
-}}}
-
-The css is
-{{{
-red-span { // prefer styling using the tag name
-  display: span;
-  background-color: red;
-}
-}}}
-
-The html template might be:
-{{{
-<template id="red-span-template">
-  Span: <span id="label"></span>
-</template>
-}}}
+We try to keep our classes in a namespace instead of polluting the global object, so you will see most modules begin with tvcm.exportTo('x', function() { }).
 
 
 =Principles=
 We care the most about the public interface of the component. Make sure that it is minimal, and sealed. Code should *never* reach across multiple components, using JS, selectors, or magic. We want the internal implementation details of the component to stay sealed: pretend that a component's contents are in its shadow, if you can --- not even tests should reach inside, except via public methods exposed by testing.
 
-*Never* ever ever use querySelector, or use selectors to style across components. Mutate/access html attributes/childlist elements directly only iff the object is designed for it, e.g. ui/list_view.
+*Never* ever ever use querySelector to reach into another component, or use selectors to style across component boundaries. Style yourself, not others, basically. If you want to change someone else's behavior or appearance, do so via their public interface: via their html attributes, js properties/methods, or their children.
 
+=Polymer caveats=
+Think of polymer data binding and template instantiation/conditionals using {{}} like you do regular expressions: they're very powerful, but they can be hard to understand by others.
+
+When you go to use these features in polymer, quickly think about what the js-based approach would be by using mutation observers and a bit of carefully written script. Which is easier to read for *someone new to the code*? Pick the one that is easier, not more concise.
 
 =Events and Properties=
   # Properties should be settable in any order
   # Properties can be backed by a member variable of the same name, e.g. set foo() -> this.foo`_`. If their use is super trivial, e.g. just passthrough to some other property, then its okay to not store it as a member variable. If you call bind(this) on the properties, the member variable is still called this.foo`_`.
   # Properties should come with getters, unless it is non-sensical. If you don't "need it" you should still write it.
 
-Components should dispatch events for changes it makes to to publically visible attributes, if it makes sense. Not all properties need to dispatch change events. Internal only properties should not dispatch public events, if at all possible.
+Components should dispatch events for changes it makes to to publicly visible attributes, if it makes sense. Not all properties need to dispatch change events. Internal only properties should not dispatch public events, if at all possible.
 
 Properties should be limited to the absolute minimum. Properties that exist simply to propagate change events between internal parts of a component should be suffixed with an underscore, eg myInternalProperty`_`.
 
-=Property declaration order=
-  # `__`proto`__`
-  # decorate() 
-  # getter/setter pairs
-  # public methods
-  # private methods, post-pended with underbar`_`
 
 =Component boundaries, scoping=
 Never reach outside your class into another component, using querySelector/querySelectorAll. Add properties, methods to the component you're interacting.
@@ -80,11 +40,13 @@ A component should work regardless of its parent. If there is specific behavior 
 tldr, most of your css should of the form: "component-name", or "component > direct-component-child". Dont go poking deeper unless you have a darn good reason.
  
 
-=Multiple fields=
-Sometimes, you'll have a few fields whose combined value defines the component. We typically use an updateContents`_` design pattern for this:
+=UpdateContents design pattern=
+Sometimes, you'll have a pair of properties that change the component's contents in a non-orthogonal way. A bad way to do this is to require that the properties be set in some specific order, or have a setBothPropertyAAndB() and stop using properties at all, or force the component to have a constructor.
+
+The more scalable solution to this is to have an updateContents`_` design pattern:
 
 {{{
-  decorate: function() {
+  ready: function() {
     this.prefix_ = 'span: '; // we prefer to set defaults here, not on the prototype.
     this.spanLabel_ = undefined; // and we set them even when they're undefined.
   },
@@ -109,16 +71,15 @@ Sometimes, you'll have a few fields whose combined value defines the component. 
   }
 }}}
 
-=Testing=
-Do not reach into a component using selectors or direct child manipulation to make a unit test. A common mistake is for component writers to write tests that make huge and sweeping assumptions about how their component's children are set up, making future alterations to its implementation nightmarish.
-
-If needed, separate out DOM creation code from data manipulation code, unit test the data manipulation code and create enough synthetic data to only lightly test the UI. this.addHTMLOutput(el) is a useful primitive: it lets you instantiate your component so you can interactively fiddle with it until it works well-enough.
-
 =Graceful failure of missing properties=
 If a property can be unset, then updateContents`_` should fail without exploding.
 
 If a property has invalid values, the setter should raise an exception before letting the value be assigned.
 
+=Testing=
+Do not reach into a component using selectors or direct child manipulation to make a unit test. A common mistake is for component writers to write tests that make huge and sweeping assumptions about how their component's children are set up, making future alterations to its implementation nightmarish.
+
+If needed, separate out DOM creation code from data manipulation code, unit test the data manipulation code and create enough synthetic data to only lightly test the UI. this.addHTMLOutput(el) is a useful primitive: it lets you instantiate your component so you can interactively fiddle with it until it works well-enough.
 
 =Complex update calculations=
 Sometimes the repeated calling of updateContents`_` is too costly. Two options:
