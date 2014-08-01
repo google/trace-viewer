@@ -7,19 +7,18 @@
 
 = Module system =
 
- * Tracing currently uses a funky require-based module system. We can do better. Its all a hack.
+ * Tracing currently uses html imports for modules.
  * We aspire to one-class-per file. Feel free to break up big files as you encounter them, they exist purely for legacy reasons.
 
 = Tests =
 
- * See unittest.js -- mostly compatible with closure tests
- * Does not support async tests
+ * See unittest.html -- mostly compatible with closure tests
  * See [Testing] for more information
 
-= Framework =
+= Components =
 
- * UI elements should subclass directly from HTMLElements, rather than contain them. This is done via base.ui.define (ui.js).
- * Heavily reliance on 2009-era flexbox for layout
+ * New UI elements should be Polymer components.
+ * You will see some old references to tvcm.ui.define('x'). This is our old approach for building components. Its like polymer, in that you can subclass the element, but it doesn't use shadow dom or have any templating or data binding.
 
 = Rough module breakdown =
 
