@@ -80,12 +80,26 @@ example file as `chrome://tracing` has to be built directly into chrome to
 have the needed access.
 
 =Updating Chromium's about:tracing==
-To get your change to appear in Chrome's about:tracing, commit to trace-viewer. Make a note of the svn revision you landed. Then edit Chrome's [http://src.chromium.org/chrome/trunk/src/DEPS src/DEPS] file. Look in there for a line like
+To get your change to appear in Chrome's about:tracing, commit to trace-viewer. Make a note of the svn revision you landed. Then find the git revision by rebasing third_party/trace-viewer to origin/master and finding the corresponding git rev for your patch:
 {{{
-  "src/third_party/trace-viewer":
-    (Var("googlecode_url") % "trace-viewer") + "/trunk@319",
+$ cd $CHROMIUM_SRC/third_party/trace-viewer
+$ git fetch && git rebase origin/master
+$ git log
+...
+commit 6f49169ab7d1d58a6c10e6631ebe91f191b4892b
+Author: you@chromium.org
+Date:   Wed Aug 20 00:00:00 2014 +0000
+
+    Patch description
 }}}
-Update the number to the rev you want to roll to, and [http://www.chromium.org/developers/contributing-code contribute a codereview to chrome] for the edit.
+
+Then edit Chrome's [http://src.chromium.org/chrome/trunk/src/DEPS src/DEPS] file. Look in there for a line like
+{{{
+  "src/third_party/trace-viewer":                                                |
+      Var("chromium_git") + "/external/trace-viewer.git@6f49169ab7d1d58a6c10e6631e\|
+be91f191b4892b", # from svn revision 1489   
+}}}
+Update the number to the git/svn rev you want to roll to, and [http://www.chromium.org/developers/contributing-code contribute a codereview to chrome] for the edit. If you are a Chromium committer, feel free to TBR this.
 
 =Some notes=
 
