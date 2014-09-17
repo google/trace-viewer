@@ -1,34 +1,16 @@
-#summary Embedding trace viewer
+#summary Making standalone HTML files
 
-Embedding trace-viewer as your own component is relatively easy.
+If you have a trace file that you want to turn into a html file with a viewer then:
 
-Source the trace-viewer javascript. The development way to do this is:
-{{{
-<script src="base.js"></script>
-<script>base.require('trace-viewer');</script>
-}}}
 
-To get a flattened form:
-{{{
-/build/generate_standalone_timeline_view.py --js=trace_viewer.js --css=trace_viewer.css
-}}}
+sys.path.append(path_to_trace_viewer_repo)
+from trace_viewer.build import trace2html
+with open('my_trace.html', 'w') as new_file:
+   trace2html.WriteHTMLForTracesToFile(['my_trace.json'], new_file)
 
-Then bring those in:
-{{{
-<link type="text/css" rel="stylesheet" href="trace_viewer.css">
-<script src="trace_viewer.js"></script>
-}}}
+This will produce a standalone trace viewer with my_trace packed inside.
 
-Once its loaded, !TimelineView and Model are your friends:
-{{{
-document.addEventListener('DOMContentLoaded', function() {
-  var model = Model();
-  model.importTraces([... do an xhr to get the data...]);
+Embedding trace-viewer as your own polymer component is WIP. It'll happen soon.
 
-  var viewEl = tracing.TimelineView();
-  viewEl.model = model;
-  document.body.appendChild(viewEl);
-});
-}}}
-
-Take a peek at [http://code.google.com/p/trace-viewer/source/browse/trunk/examples/trace_viewer.html trace_viewer.html] for an example of this in action.
+# Embedding Trace Viewer
+We are working on making trace-viewer an embeddable polymer component. Its not quite there yet.
