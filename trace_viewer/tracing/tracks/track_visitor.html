@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2014 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<link rel="import" href="/base.html">
+<link rel="import" href="/tracing/tracks/track.html">
+
+<script>
+'use strict';
+
+/**
+ * @fileoverview Provides the TrackVisitor class.
+ */
+tv.exportTo('tracing.tracks', function() {
+
+  /**
+   * Visits subtracks of a given track.
+   * @constructor
+   */
+  function TrackVisitor(opt_strict) {
+    this.strict_ = !!opt_strict;
+  };
+
+  var visitUnknownTrack = function(/*track, arguments*/) {};
+
+  TrackVisitor.prototype = {
+    __proto__: Object.prototype,
+
+    visit: function(track /*arguments*/) {
+      if (track.TRACK_CLASS_NAME_ === undefined) {
+        this.visitUnknownTrack.apply(this, arguments);
+      } else {
+        var methodName = 'visit' + track.TRACK_CLASS_NAME_;
+        if (this[methodName] === undefined) {
+          this.visitTrack.apply(this, arguments);
+        } else {
+          this[methodName].apply(this, arguments);
+        }
+      }
+    },
+
+    visitAll_: function(tracks, args) {
+      args = [0].concat(args);
+      for (var i = 0; i < tracks.length; i++) {
+        var track = tracks[i];
+        // This check is necessary because ProcessTrackBase has a header child.
+        if (!(track instanceof tracing.tracks.Track)) {
+          continue;
+        }
+        args[0] = track;
+        this.visit.apply(this, args);
+      }
+    },
+
+    visitAsyncSliceGroupTrack: function(/*track, arguments*/) {
+      this.visitMultiRowTrack.apply(this, arguments);
+    },
+
+    visitContainerTrack: function(track /*arguments*/) {
+      this.visitHeadingTrack.apply(this, arguments);
+      this.visitAll_(track.children, Array.prototype.slice(arguments, 1));
+    },
+
+    visitCounterTrack: function(/*track, arguments*/) {
+      this.visitHeadingTrack.apply(this, arguments);
+    },
+
+    visitCpuTrack: function(/*track, arguments*/) {
+      this.visitContainerTrack.apply(this, arguments);
+    },
+
+    visitDrawingContainer: function(/*track, arguments*/) {
+      this.visitTrack.apply(this, arguments);
+    },
+
+    visitHeadingTrack: function(/*track, arguments*/) {
+      this.visitTrack.apply(this, arguments);
+    },
+
+    visitKernelTrack: function(/*track, arguments*/) {
+      this.visitProcessTrackBase.apply(this, arguments);
+    },
+
+    visitMultiRowTrack: function(/*track, arguments*/) {
+      this.visitContainerTrack.apply(this, arguments);
+    },
+
+    visitObjectInstanceGroupTrack: function(/*track, arguments*/) {
+      this.visitMultiRowTrack.apply(this, arguments);
+    },
+
+    visitObjectInstanceTrack: function(/*track, arguments*/) {
+      this.visitHeadingTrack.apply(this, arguments);
+    },
+
+    visitProcessTrack: function(/*track, arguments*/) {
+      this.visitProcessTrackBase.apply(this, arguments);
+    },
+
+    visitProcessTrackBase: function(/*track, arguments*/) {
+      this.visitContainerTrack.apply(this, arguments);
+    },
+
+    visitRectTrack: function(/*track, arguments*/) {
+      this.visitHeadingTrack.apply(this, arguments);
+    },
+
+    visitRulerTrack: function(/*track, arguments*/) {
+      this.visitHeadingTrack.apply(this, arguments);
+    },
+
+    visitSampleTrack: function(/*track, arguments*/) {
+      this.visitRectTrack.apply(this, arguments);
+    },
+
+    visitSliceGroupTrack: function(/*track, arguments*/) {
+      this.visitMultiRowTrack.apply(this, arguments);
+    },
+
+    visitSliceTrack: function(/*track, arguments*/) {
+      this.visitRectTrack.apply(this, arguments);
+    },
+
+    visitSpacingTrack: function(/*track, arguments*/) {
+      this.visitHeadingTrack.apply(this, arguments);
+    },
+
+    visitStackedBarsTrack: function(/*track, arguments*/) {
+      this.visitHeadingTrack.apply(this, arguments);
+    },
+
+    visitThreadTrack: function(/*track, arguments*/) {
+      this.visitContainerTrack.apply(this, arguments);
+    },
+
+    visitTraceModelTrack: function(/*track, arguments*/) {
+      this.visitContainerTrack.apply(this, arguments);
+    },
+
+    visitTrack: function(/*track, arguments*/) {
+      if (this.strict_) {
+        throw new Error('undefined visitor method')
+      }
+    },
+
+    visitUnknownTrack: function(/*track, arguments*/) {
+      if (this.strict_) {
+        throw new Error('unknown track type');
+      }
+    }
+  };
+
+  return {
+    TrackVisitor: TrackVisitor
+  };
+});
+</script>
+

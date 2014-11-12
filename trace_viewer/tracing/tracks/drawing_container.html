@@ -30,6 +30,8 @@ tv.exportTo('tracing.tracks', function() {
   DrawingContainer.prototype = {
     __proto__: tracing.tracks.Track.prototype,
 
+    TRACK_CLASS_NAME_: 'DrawingContainer',
+
     decorate: function(viewport) {
       tracing.tracks.Track.prototype.decorate.call(this, viewport);
       this.classList.add('drawing-container');

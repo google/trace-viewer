@@ -22,6 +22,8 @@ tv.exportTo('tracing.tracks', function() {
   ContainerTrack.prototype = {
     __proto__: tracing.tracks.Track.prototype,
 
+    TRACK_CLASS_NAME_: 'ContainerTrack',
+
     decorate: function(viewport) {
       tracing.tracks.Track.prototype.decorate.call(this, viewport);
     },

@@ -42,6 +42,8 @@ tv.exportTo('tracing.tracks', function() {
   CounterTrack.prototype = {
     __proto__: tracing.tracks.HeadingTrack.prototype,
 
+    TRACK_CLASS_NAME_: 'CounterTrack',
+
     decorate: function(viewport) {
       tracing.tracks.HeadingTrack.prototype.decorate.call(this, viewport);
       this.classList.add('counter-track');

@@ -22,6 +22,8 @@ tv.exportTo('tracing.tracks', function() {
   ProcessTrack.prototype = {
     __proto__: ProcessTrackBase.prototype,
 
+    TRACK_CLASS_NAME_: 'ProcessTrack',
+
     decorate: function(viewport) {
       tracing.tracks.ProcessTrackBase.prototype.decorate.call(this, viewport);
     },

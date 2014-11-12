@@ -25,6 +25,8 @@ tv.exportTo('tracing.tracks', function() {
   CpuTrack.prototype = {
     __proto__: tracing.tracks.ContainerTrack.prototype,
 
+    TRACK_CLASS_NAME_: 'CpuTrack',
+
     decorate: function(viewport) {
       tracing.tracks.ContainerTrack.prototype.decorate.call(this, viewport);
       this.classList.add('cpu-track');

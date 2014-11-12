@@ -22,6 +22,8 @@ tv.exportTo('tracing.tracks', function() {
   SpacingTrack.prototype = {
     __proto__: tracing.tracks.HeadingTrack.prototype,
 
+    TRACK_CLASS_NAME_: 'SpacingTrack',
+
     decorate: function(viewport) {
       tracing.tracks.HeadingTrack.prototype.decorate.call(this, viewport);
       this.classList.add('spacing-track');

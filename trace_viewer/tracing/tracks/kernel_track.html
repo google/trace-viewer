@@ -26,6 +26,8 @@ tv.exportTo('tracing.tracks', function() {
   KernelTrack.prototype = {
     __proto__: ProcessTrackBase.prototype,
 
+    TRACK_CLASS_NAME_: 'KernelTrack',
+
     decorate: function(viewport) {
       tracing.tracks.ProcessTrackBase.prototype.decorate.call(this, viewport);
     },
