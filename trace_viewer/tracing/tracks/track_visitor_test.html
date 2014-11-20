@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2014 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<link rel="import" href="/tracing/timeline_track_view.html">
+<link rel="import" href="/tracing/trace_model/thread.html">
+<link rel="import" href="/tracing/tracks/drawing_container.html">
+<link rel="import" href="/tracing/tracks/sample_track.html">
+<link rel="import" href="/tracing/tracks/trace_model_track.html">
+<link rel="import" href="/tracing/tracks/track_visitor.html">
+
+<script>
+'use strict';
+
+tv.unittest.testSuite(function() {
+  var ThreadSlice = tracing.trace_model.ThreadSlice;
+  var SampleTrack = tracing.tracks.SampleTrack;
+  var TraceModelTrack = tracing.tracks.TraceModelTrack
+  var TrackVisitor = tracing.tracks.TrackVisitor;
+
+  test('visitTrackDirectly', function() {
+    var track = new SampleTrack(new tracing.TimelineViewport());
+
+    var visited = false;
+    var visitor = new TrackVisitor(true);
+    visitor.visitSampleTrack = function() {
+      visited = true;
+    }
+    visitor.visit(track);
+    assertTrue(visited);
+  });
+
+  test('visitTrackSuper', function() {
+    var track = new SampleTrack(new tracing.TimelineViewport());
+
+    var visited = false;
+    var visitor = new TrackVisitor(true);
+    visitor.visitTrack = function() {
+      visited = true;
+    }
+    visitor.visit(track);
+    assertTrue(visited);
+  })
+
+  var PROCESS_COUNT = 3;
+  var THREADS_PER_PROCESS = 4;
+
+  test('visitTrackContainers', function() {
+    var model = new tracing.TraceModel();
+    for (var i = 0; i < PROCESS_COUNT; i++) {
+      var p = model.getOrCreateProcess(i);
+      for (var j = 0; j < THREADS_PER_PROCESS; j++) {
+        var t = p.getOrCreateThread(j);
+        t.sliceGroup.pushSlice(new ThreadSlice('', 'a', 0, 1, {}, 4));
+      }
+    }
+
+    var viewport = new tracing.TimelineViewport()
+    var track = new TraceModelTrack(viewport);
+    viewport.modelTrackContainer = new tracing.tracks.DrawingContainer(
+        viewport);
+    track.model = model;
+
+    var visited = 0;
+    var visitor = new TrackVisitor(true);
+    visitor.visitTrack = function() {
+      visited++;
+    }
+    visitor.visit(track);
+    // 1x TraceModelTrack
+    //   PROCESS_COUNTx ProcessTrack
+    //     THREADS_PER_PROCESSx ThreadTrack
+    //       1x SliceGroupTrack
+    //       1x RectTrack
+    //     THREADS_PER_PROCESSx SpacingTrack
+    assertEquals(1 + PROCESS_COUNT * (1 + THREADS_PER_PROCESS * 4), visited);
+  })
+});
+</script>
+

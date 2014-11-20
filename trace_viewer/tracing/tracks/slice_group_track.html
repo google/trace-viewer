@@ -25,6 +25,8 @@ tv.exportTo('tracing.tracks', function() {
 
     __proto__: tracing.tracks.MultiRowTrack.prototype,
 
+    TRACK_CLASS_NAME_: 'SliceGroupTrack',
+
     decorate: function(viewport) {
       tracing.tracks.MultiRowTrack.prototype.decorate.call(this, viewport);
       this.classList.add('slice-group-track');

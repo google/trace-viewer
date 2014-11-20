@@ -27,6 +27,8 @@ tv.exportTo('tracing.tracks', function() {
   Track.prototype = {
     __proto__: tv.ui.ContainerThatDecoratesItsChildren.prototype,
 
+    TRACK_CLASS_NAME_: 'Track',
+
     decorate: function(viewport) {
       tv.ui.ContainerThatDecoratesItsChildren.prototype.decorate.call(this);
       if (viewport === undefined)

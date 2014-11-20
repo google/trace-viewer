@@ -33,6 +33,8 @@ tv.exportTo('tracing.tracks', function() {
   ObjectInstanceTrack.prototype = {
     __proto__: tracing.tracks.HeadingTrack.prototype,
 
+    TRACK_CLASS_NAME_: 'ObjectInstanceTrack',
+
     decorate: function(viewport) {
       tracing.tracks.HeadingTrack.prototype.decorate.call(this, viewport);
       this.classList.add('object-instance-track');

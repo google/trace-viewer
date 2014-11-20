@@ -28,6 +28,8 @@ tv.exportTo('tracing.tracks', function() {
 
     __proto__: tracing.tracks.ContainerTrack.prototype,
 
+    TRACK_CLASS_NAME_: 'MultiRowTrack',
+
     decorate: function(viewport) {
       tracing.tracks.ContainerTrack.prototype.decorate.call(this, viewport);
       this.tooltip_ = '';

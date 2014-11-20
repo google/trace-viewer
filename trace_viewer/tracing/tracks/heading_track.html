@@ -30,6 +30,8 @@ tv.exportTo('tracing.tracks', function() {
   HeadingTrack.prototype = {
     __proto__: tracing.tracks.Track.prototype,
 
+    TRACK_CLASS_NAME_: 'HeadingTrack',
+
     decorate: function(viewport) {
       tracing.tracks.Track.prototype.decorate.call(this, viewport);
       this.classList.add('heading-track');
