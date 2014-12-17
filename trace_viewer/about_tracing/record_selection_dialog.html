@@ -506,11 +506,8 @@ tv.exportTo('about_tracing', function() {
       // Dedup the categories. We may have things in settings that are also
       // returned when we query the category list.
       var categorySet = {};
-      var allCategories =
-          this.categories_.concat(tv.Settings.keys(this.settings_key_));
-      var allCategoriesLength = allCategories.length;
-      for (var i = 0; i < allCategoriesLength; ++i)
-        categorySet[allCategories[i]] = true;
+      for (var i = 0; i < this.categories_.length; ++i)
+        categorySet[this.categories_[i]] = true;
       return categorySet;
     },
 
