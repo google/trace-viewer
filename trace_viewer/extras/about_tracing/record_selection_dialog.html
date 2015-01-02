@@ -172,6 +172,11 @@ tv.exportTo('tv.e.about_tracing', function() {
     {title: 'Frame Viewer',
       categoryFilter: ['blink', 'cc', 'gpu', 'v8', 'toplevel',
         'disabled-by-default-cc.debug']},
+    {title: 'Crbug Report',
+      categoryFilter: ['-*Debug', '-*Test', 'toplevel']},
+    {title: 'Crbug Report with Frame Viewer',
+      categoryFilter: ['-*Debug', '-*Test', 'toplevel',
+        'disabled-by-default-cc.debug']},
     {title: 'Manually select settings',
       categoryFilter: []}
   ];
@@ -396,9 +401,44 @@ tv.exportTo('tv.e.about_tracing', function() {
       }
     },
 
+    categoryFilterIncludesRegex_: function() {
+      var regexValue = [];
+      for (var i = 0; i < this.currentlyChosenPreset_.length; ++i) {
+        var category = this.currentlyChosenPreset_[i];
+        var pattern = category.match(/(^-?)\*(\w*$)/);
+        if (pattern && pattern.length) {
+          var type = {
+            exclude: (pattern[1].length ? true : false),
+            key: pattern[2]
+          };
+          regexValue[regexValue.length] = type;
+        }
+      }
+
+      if (regexValue.length)
+        return regexValue;
+      return undefined;
+    },
+
     categoryFilter: function() {
       if (this.usingPreset_()) {
         var categories = [];
+        var regexValues = this.categoryFilterIncludesRegex_();
+        if (regexValues) {
+          // for (var i = 0; i < regexValues.length; ++i) {
+          //   var key = (regexValues[i].key).toLowerCase();
+          //   if (category.toLowerCase().indexOf(key) >= 0 &&
+          //       regexValues[i].exclude) {
+          //     categories.push('-' + category);
+          //     break;
+          //   }
+          // }
+          for (var i = 0; i < this.currentlyChosenPreset_.length; ++i) {
+            categories.push(this.currentlyChosenPreset_[i]);
+          }
+          return categories.join(',');
+        }
+
         var allCategories = this.allCategories_();
         for (var category in allCategories) {
           var disabled = category.indexOf('disabled-by-default-') == 0;
