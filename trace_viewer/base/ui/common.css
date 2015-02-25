@@ -9,3 +9,26 @@ body * {
   -webkit-user-select: none;
   box-sizing: border-box;
 }
+
+.labeled-checkbox {
+  white-space: nowrap;
+}
+
+.labeled-option-group {
+  -webkit-flex: 0 0 auto;
+  -webkit-flex-direction: column;
+  -webkit-align-items: left;
+  display: -webkit-flex;
+}
+
+.labeled-option {
+  border-top: 5px solid white;
+  border-bottom: 5px solid white;
+}
+
+.labeled-option-customize {
+  float: right;
+  background: rgb(205, 205, 205);
+  border-color: blueviolet;
+  margin-left: 20px;
+}

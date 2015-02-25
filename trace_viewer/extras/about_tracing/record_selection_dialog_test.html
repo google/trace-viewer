@@ -135,6 +135,46 @@ tv.b.unittest.testSuite(function() { // @suppress longLineCheck
         tv.b.Settings.get('disabled-by-default-foo', false, 'categories'));
   });
 
+  test('recordSelectionDialog_changeActiveTab', function() {
+    var dlg = new tv.e.about_tracing.RecordSelectionDialog();
+    // Default display is Presets tab.
+    dlg.categories = ['one', 'two', 'three'];
+    dlg.settings_key = 'categories';
+    dlg.currentlyChosenPreset = ['one'];
+    dlg.updateForm_();
+
+    assertEquals(true, dlg.showingPresetTab_());
+    dlg.querySelector('.labeled-option-customize').click();
+    assertEquals(false, dlg.showingPresetTab_());
+    dlg.querySelector('tab-strip-label').click();
+    assertEquals(true, dlg.showingPresetTab_());
+
+    // Default display is Advanced tab.
+    dlg.currentlyChosenPreset = [];
+    dlg.updateForm_();
+
+    assertEquals(false, dlg.showingPresetTab_());
+    dlg.querySelector('tab-strip-label').click();
+    assertEquals(true, dlg.showingPresetTab_());
+    dlg.querySelector('.labeled-option-customize').click();
+    assertEquals(false, dlg.showingPresetTab_());
+  });
+
+  test('recordSelectionDialog_checkPresetCustomizeState', function() {
+    var dlg = new tv.e.about_tracing.RecordSelectionDialog();
+    dlg.categories = ['one', 'two', 'three'];
+    dlg.settings_key = 'categories';
+    dlg.currentlyChosenPreset = ['one'];
+    dlg.updateForm_();
+
+    var inputs = dlg.querySelectorAll('.labeled-option-customize');
+    // In presets mode, customize button should be active only for the
+    // selected preset option. Rest all cutomize buttons should be disabled.
+    assertEquals(false, inputs[0].disabled);
+    for (var i = 1; i < inputs.length; ++i)
+      assertEquals(true, inputs[i].disabled);
+  });
+
   test('selectAll', function() {
     tv.b.Settings.set('two', true, 'categories');
     tv.b.Settings.set('three', false, 'categories');
@@ -204,6 +244,10 @@ tv.b.unittest.testSuite(function() { // @suppress longLineCheck
     // Make sure the manual settings are not visible.
     var classList = dlg.categoriesView_.classList;
     assertEquals(true, classList.contains('categories-column-view-hidden'));
+    assertEquals(false,
+        dlg.presetsEl_.classList.contains('category-presets-hidden'));
+    var descClasslist = dlg.querySelector('.category-description').classList;
+    assertEquals(false, descClasslist.contains('category-description-hidden'));
 
     // Verify manual settings do not modify the checkboxes.
     var checkboxes = dlg.querySelectorAll('.categories input');
@@ -253,6 +297,10 @@ tv.b.unittest.testSuite(function() { // @suppress longLineCheck
     assertEquals(true, dlg.useSystemTracing);
     assertEquals(false, dlg.useSampling);
     assertEquals(false, classList.contains('categories-column-view-hidden'));
+    assertEquals(true,
+        dlg.presetsEl_.classList.contains('category-presets-hidden'));
+    var descClasslist = dlg.querySelector('.category-description').classList;
+    assertEquals(true, descClasslist.contains('category-description-hidden'));
 
     // Switch to the graphics, rendering, and rasterization preset.
     dlg.currentlyChosenPreset = ['blink', 'cc', 'renderer',
