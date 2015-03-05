@@ -70,6 +70,7 @@ tv.b.unittest.testSuite(function() {
     var viewX = boundRect.left + tv.c.constants.HEADING_WIDTH;
     var viewY = boundRect.top + boundRect.height / 2;
     location.fromViewCoordinates(viewX, viewY);
+    assertEquals(asyncTrack, location.containingTrack);
     assertObjectEquals({ viewX: viewX, viewY: viewY },
                        location.toViewCoordinates());
 
@@ -81,6 +82,14 @@ tv.b.unittest.testSuite(function() {
     var expandedViewY = boundRect.top + boundRect.height;
     assertObjectEquals({ viewX: viewX, viewY: expandedViewY },
                        location.toViewCoordinates());
+
+    // Test the functionality of fromStableIdAndTimestamp.
+    var locationFromCoord = new Location(vp);
+    var locationFromStableId = new Location(vp);
+    locationFromCoord.fromViewCoordinates(viewX, boundRect.top);
+    locationFromStableId.fromStableIdAndTimestamp('123.456.AsyncSliceGroup',
+                                                  location.xWorld);
+    assertObjectEquals(locationFromCoord, locationFromStableId);
 
     // Undo scroll.
     document.getElementById('results-container').scrollTop = 0;
