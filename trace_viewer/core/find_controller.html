@@ -7,6 +7,7 @@ found in the LICENSE file.
 
 <link rel="import" href="/base/task.html">
 <link rel="import" href="/core/filter.html">
+<link rel="import" href="/core/location.html">
 <link rel="import" href="/core/selection.html">
 
 <script>
@@ -50,6 +51,36 @@ tv.exportTo('tv.c', function() {
       this.filterHitsDirty_ = true;
     },
 
+    findSelections_: function() {
+      var promise = Promise.resolve();
+
+      var filter = new tv.c.TitleFilter(this.filterText);
+      var filterHits = new tv.c.Selection();
+      var filterTask =
+          this.timeline.addAllObjectsMatchingFilterToSelectionAsTask(
+              filter, filterHits);
+      promise = Task.RunWhenIdle(filterTask);
+      promise.then(function() {
+        this.filterHitsDirty_ = false;
+        this.filterHits_ = filterHits;
+        this.timeline.setHighlightAndClearSelection(filterHits);
+      }.bind(this));
+      return promise;
+    },
+
+    clearFindSelections_: function() {
+      this.timeline.setHighlightAndClearSelection(new tv.c.Selection());
+    },
+
+    navigateByFind_: function(timestamp, pid, tid, scaleX) {
+      if (this.timeline_ && pid >= 0 && tid >= 0 && scaleX > 0) {
+        var loc = new tv.c.Location(this.timeline.viewport);
+        loc.fromStableIdAndTimestamp(pid + '.' + tid, timestamp);
+
+        this.timeline.navToPosition(loc, scaleX);
+      }
+    },
+
     /**
      * Updates the filter hits based on the current filtering settings. Returns
      * a promise which resolves when |filterHits| has been refreshed.
@@ -63,18 +94,16 @@ tv.exportTo('tv.c', function() {
       this.filterHits_ = new tv.c.Selection();
       this.currentHitIndex_ = -1;
 
-      if (this.timeline_ && this.filterText.length) {
-        var filter = new tv.c.TitleFilter(this.filterText);
-        var filterHits = new tv.c.Selection();
-        var filterTask =
-            this.timeline.addAllObjectsMatchingFilterToSelectionAsTask(
-                filter, filterHits);
-        promise = Task.RunWhenIdle(filterTask);
-        promise.then(function() {
-          this.filterHitsDirty_ = false;
-          this.filterHits_ = filterHits;
-          this.timeline.setHighlightAndClearSelection(filterHits);
-        }.bind(this));
+      var navByFinderPattern = /^(\d+(\.\d+)?)@(\d+)\.(\d+)x(\d+(\.\d+)?)$/g;
+      var match = navByFinderPattern.exec(this.filterText);
+      if (match !== null) {
+        this.navigateByFind_(Number(match[1]), match[3],
+                             match[4], Number(match[5]));
+      } else {
+        if (this.filterText.length === 0)
+          this.clearFindSelections_();
+        else if (this.timeline_)
+          promise = this.findSelections_();
       }
       return promise;
     },
