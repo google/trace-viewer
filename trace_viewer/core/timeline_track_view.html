@@ -608,10 +608,10 @@ tv.exportTo('tv.c', function() {
       this.viewport_.queueDisplayTransformAnimation(animation);
     },
 
-    navToPosition: function(location, scaleX) {
+    navToPosition: function(uiState) {
       var track = location.containingTrack;
-      if (track == undefined)
-        return;
+      var location = uiState.location;
+      var scaleX = uiState.scaleX;
 
       var worldCenter = location.xWorld;
       var viewCenter = this.modelTrackContainer_.canvas.width / 5;

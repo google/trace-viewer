@@ -206,6 +206,7 @@
       'trace_viewer/core/tracks/thread_track.html',
       'trace_viewer/core/tracks/trace_model_track.html',
       'trace_viewer/core/tracks/track.html',
+      'trace_viewer/core/ui_state.html',
       'trace_viewer/extras/about_tracing/about_tracing.html',
       'trace_viewer/extras/about_tracing/inspector_connection.html',
       'trace_viewer/extras/about_tracing/inspector_tracing_controller_client.html',

@@ -7,8 +7,8 @@ found in the LICENSE file.
 
 <link rel="import" href="/base/task.html">
 <link rel="import" href="/core/filter.html">
-<link rel="import" href="/core/location.html">
 <link rel="import" href="/core/selection.html">
+<link rel="import" href="/core/ui_state.html">
 
 <script>
 'use strict';
@@ -51,7 +51,9 @@ tv.exportTo('tv.c', function() {
       this.filterHitsDirty_ = true;
     },
 
-    findSelections_: function() {
+    getFilterTask_: function() {
+      if (!this.timeline_)
+        return;
       var promise = Promise.resolve();
 
       var filter = new tv.c.TitleFilter(this.filterText);
@@ -72,15 +74,6 @@ tv.exportTo('tv.c', function() {
       this.timeline.setHighlightAndClearSelection(new tv.c.Selection());
     },
 
-    navigateByFind_: function(timestamp, pid, tid, scaleX) {
-      if (this.timeline_ && pid >= 0 && tid >= 0 && scaleX > 0) {
-        var loc = new tv.c.Location(this.timeline.viewport);
-        loc.fromStableIdAndTimestamp(pid + '.' + tid, timestamp);
-
-        this.timeline.navToPosition(loc, scaleX);
-      }
-    },
-
     /**
      * Updates the filter hits based on the current filtering settings. Returns
      * a promise which resolves when |filterHits| has been refreshed.
@@ -94,16 +87,24 @@ tv.exportTo('tv.c', function() {
       this.filterHits_ = new tv.c.Selection();
       this.currentHitIndex_ = -1;
 
-      var navByFinderPattern = /^(\d+(\.\d+)?)@(\d+)\.(\d+)x(\d+(\.\d+)?)$/g;
-      var match = navByFinderPattern.exec(this.filterText);
-      if (match !== null) {
-        this.navigateByFind_(Number(match[1]), match[3],
-                             match[4], Number(match[5]));
+      // Try constructing a UIState from the filterText.
+      // UIState.fromUserFriendlyString will only return a valid UIState if the
+      // string is correctly formatted and the pid,tid is found in our model.
+      var stateFromString = tv.c.UIState.fromUserFriendlyString(
+          this.timeline.viewport, this.filterText);
+      if (stateFromString instanceof Error) {
+        var overlay = new tv.b.ui.Overlay();
+        overlay.textContent = stateFromString.message;
+        overlay.title = 'UI State Navigation Error';
+        overlay.visible = true;
+      } else if (stateFromString instanceof tv.c.UIState) {
+        this.timeline.navToPosition(stateFromString);
       } else {
+        // filterText is not a navString here -- proceed with find and filter.
         if (this.filterText.length === 0)
           this.clearFindSelections_();
-        else if (this.timeline_)
-          promise = this.findSelections_();
+        else
+          promise = this.getFilterTask_();
       }
       return promise;
     },

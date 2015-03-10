@@ -257,10 +257,11 @@ tv.b.unittest.testSuite(function() {
     controller.filterText = '2000@1.2x7';
 
     var cbCalls = 0;
-    timeline.navToPosition = function(location, scaleX) {
-      assertEquals(2000, location.xWorld);
-      assertEquals('1.2', location.containingTrack.eventContainer.stableId);
-      assertEquals(7, scaleX);
+    timeline.navToPosition = function(uiState) {
+      assertEquals(2000, uiState.location.xWorld);
+      assertEquals('1.2',
+          uiState.location.containingTrack.eventContainer.stableId);
+      assertEquals(7, uiState.scaleX);
       cbCalls++;
     };
     controller.updateFilterHits();

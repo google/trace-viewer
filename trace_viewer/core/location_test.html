@@ -63,13 +63,10 @@ tv.b.unittest.testSuite(function() {
     // an originally off-screen element.
     asyncTrack.scrollIntoView();
 
-    var location = new Location(vp);
-    assertObjectEquals({ viewX: null, viewY: -1 },
-                       location.toViewCoordinates());
     var boundRect = asyncTrack.getBoundingClientRect();
     var viewX = boundRect.left + tv.c.constants.HEADING_WIDTH;
     var viewY = boundRect.top + boundRect.height / 2;
-    location.fromViewCoordinates(viewX, viewY);
+    var location = Location.fromViewCoordinates(vp, viewX, viewY);
     assertEquals(asyncTrack, location.containingTrack);
     assertObjectEquals({ viewX: viewX, viewY: viewY },
                        location.toViewCoordinates());
@@ -84,11 +81,11 @@ tv.b.unittest.testSuite(function() {
                        location.toViewCoordinates());
 
     // Test the functionality of fromStableIdAndTimestamp.
-    var locationFromCoord = new Location(vp);
-    var locationFromStableId = new Location(vp);
-    locationFromCoord.fromViewCoordinates(viewX, boundRect.top);
-    locationFromStableId.fromStableIdAndTimestamp('123.456.AsyncSliceGroup',
-                                                  location.xWorld);
+    var locationFromCoord =
+        Location.fromViewCoordinates(vp, viewX, boundRect.top);
+    var locationFromStableId =
+        Location.fromStableIdAndTimestamp(vp, '123.456.AsyncSliceGroup',
+                                          location.xWorld);
     assertObjectEquals(locationFromCoord, locationFromStableId);
 
     // Undo scroll.
