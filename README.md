@@ -21,4 +21,7 @@ Make sure tests pass before sending us a PR. For more details, [read our contrib
 
 Questions? Contact us
 ===========================================================================
-Our mailing list is trace-viewer@googlegroups.com
+Join our Google Groups:
+* [trace-viewer](https://groups.google.com/forum/#!forum/trace-viewer)
+* [trace-viewer-bugs](https://groups.google.com/forum/#!forum/trace-viewer-bugs)
+* [tracing@chromium.org](https://groups.google.com/a/chromium.org/forum/#!forum/tracing) (for c++ backend code)
