@@ -60,6 +60,25 @@ tv.exportTo('tv.c', function() {
     }
   };
 
+  function TitleOrCategoryFilter(text) {
+    Filter.call(this);
+    this.text_ = text;
+
+    if (!text.length)
+      throw new Error('Filter text is empty');
+  }
+  TitleOrCategoryFilter.prototype = {
+    __proto__: Filter.prototype,
+
+    matchSlice: function(slice) {
+      if (slice.title === undefined && slice.category === undefined)
+        return false;
+      return slice.title.toLowerCase().indexOf(
+                this.text_.toLowerCase()) !== -1 ||
+             slice.category.indexOf(this.text_) !== -1;
+    }
+  };
+
   /**
    * @constructor A filter that matches objects with the exact given title.
    */
@@ -80,7 +99,8 @@ tv.exportTo('tv.c', function() {
 
   return {
     TitleFilter: TitleFilter,
-    ExactTitleFilter: ExactTitleFilter
+    ExactTitleFilter: ExactTitleFilter,
+    TitleOrCategoryFilter: TitleOrCategoryFilter
   };
 });
 </script>
