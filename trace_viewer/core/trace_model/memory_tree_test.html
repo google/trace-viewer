@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2015 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<link rel="import" href="/core/test_utils.html">
+<link rel="import" href="/core/trace_model/memory_tree.html">
+
+<script>
+'use strict';
+
+tv.b.unittest.testSuite(function() {
+  var MemoryTree = tv.c.trace_model.MemoryTree;
+  var MemoryTreeNode = tv.c.trace_model.MemoryTreeNode;
+  var MemoryTreeFieldSpecifier = tv.c.trace_model.MemoryTreeFieldSpecifier;
+  var NumericMemoryTreeFieldSpecifier =
+      tv.c.trace_model.NumericMemoryTreeFieldSpecifier;
+
+  var createMemoryTree = function() {
+    // Create 3 fields:
+    // Textual (non-numeric) field.
+    var textField = new MemoryTreeFieldSpecifier('txt_field', 'Text Field');
+    textField.toString = function(node) { return node.text; };
+
+    // Numeric field with the default formatter.
+    var numericField = new NumericMemoryTreeFieldSpecifier('num_field',
+        'Numeric Field', 'num_field');
+    numericField.getNodeNumber = function(node) { return node.value; };
+
+    // Numeric field with the size formatter which allows the value of
+    // a non-leaf node to differ from the sum of its children's values.
+    var sizeField = new NumericMemoryTreeFieldSpecifier('size_field',
+        'Physical Size', 'physical_size',
+        NumericMemoryTreeFieldSpecifier.SIZE_FORMATTER);
+    sizeField.getNodeNumber = numericField.getNodeNumber;
+    sizeField.shouldSumChildren = function(node) {
+      return node.value === undefined;
+    };
+
+    var fields = [textField, numericField, sizeField];
+
+    // Create a root node with two children.
+    var root = new MemoryTreeNode('root', 'Total');
+    root.text = 'all';
+    root.value = 20;
+    var leftChild = new MemoryTreeNode('left_child', 'Private', root);
+    leftChild.text = 'secret';
+    leftChild.value = 7;
+    var rightChild = new MemoryTreeNode('right_child', 'Shared', root);
+    rightChild.text = 'public';
+    rightChild.value = 8;
+    root.children = [leftChild, rightChild];
+
+    var tree = new MemoryTree();
+    tree.fields = fields;
+    tree.root = root;
+
+    return tree;
+  };
+
+  test('checkSizeFormatter', function() {
+    var formatter = NumericMemoryTreeFieldSpecifier.SIZE_FORMATTER;
+
+    assertEquals(formatter(0), '0.0 B');
+    assertEquals(formatter(1), '1.0 B');
+    assertEquals(formatter(1023), '1023.0 B');
+    assertEquals(formatter(1024), '1.0 KiB');
+    assertEquals(formatter(1536), '1.5 KiB');
+    assertEquals(formatter(1023898), '999.9 KiB');
+    assertEquals(formatter(1024 * 1023), '1023.0 KiB');
+    assertEquals(formatter(1024 * 1024), '1.0 MiB');
+    assertEquals(formatter(424.2 * 1024 * 1024), '424.2 MiB');
+    assertEquals(formatter(5 * 1024 * 1024 * 1024), '5.0 GiB');
+  });
+
+  test('checkTreeLayout', function() {
+    var tree = createMemoryTree();
+
+    // Check that the tree contains the correct nodes.
+    assertEquals(tree.root.userFriendlyName, 'Total');
+    assertEquals(tree.root.children[0].userFriendlyName, 'Private');
+    assertEquals(tree.root.children[1].userFriendlyName, 'Shared');
+
+    // Check that there are no other nodes in the tree.
+    assertEquals(tree.root.children.length, 2);
+    assertUndefined(tree.root.children[0].children);
+    assertUndefined(tree.root.children[1].children);
+
+    // Check that children have the corrent link to their parent.
+    assertUndefined(tree.root.parent);
+    assertEquals(tree.root.children[0].parent, tree.root);
+    assertEquals(tree.root.children[1].parent, tree.root);
+
+    // Check that all nodes are stored appropriately.
+    assertEquals(Object.keys(tree.nodes).length, 3);
+    assertEquals(tree.nodes['root'], tree.root);
+    assertEquals(tree.nodes['left_child'], tree.root.children[0]);
+    assertEquals(tree.nodes['right_child'], tree.root.children[1]);
+  });
+
+  test('checkTextFieldValues', function() {
+    var tree = createMemoryTree();
+    var textField = tree.fields[0];
+
+    assertEquals(textField.toString(tree.root), 'all');
+    assertEquals(textField.toString(tree.root.children[0]), 'secret');
+    assertEquals(textField.toString(tree.root.children[1]), 'public');
+
+    // Non-numeric fields do not provide a toNumber() method.
+    assertUndefined(textField.toNumber);
+  });
+
+  test('checkNumericFieldValues', function() {
+    var tree = createMemoryTree();
+    var numericField = tree.fields[1];
+
+    assertEquals(numericField.toNumber(tree.root), 15);
+    assertEquals(numericField.toNumber(tree.root.children[0]), 7);
+    assertEquals(numericField.toNumber(tree.root.children[1]), 8);
+
+    // The default number formatter simply converts a number to its string
+    // representation.
+    assertEquals(numericField.toString(tree.root), '15');
+    assertEquals(numericField.toString(tree.root.children[0]), '7');
+    assertEquals(numericField.toString(tree.root.children[1]), '8');
+  });
+
+  test('checkSizeFieldValues', function() {
+    var tree = createMemoryTree();
+    var sizeField = tree.fields[2];
+
+    assertEquals(sizeField.toNumber(tree.root), 20);
+    assertEquals(sizeField.toNumber(tree.root.children[0]), 7);
+    assertEquals(sizeField.toNumber(tree.root.children[1]), 8);
+
+    // The custom number formatter converts the number to memory size.
+    assertEquals(sizeField.toString(tree.root), '20.0 B');
+    assertEquals(sizeField.toString(tree.root.children[0]), '7.0 B');
+    assertEquals(sizeField.toString(tree.root.children[1]), '8.0 B');
+  });
+
+  test('checkNumericFieldCaching', function() {
+    var tree = createMemoryTree();
+    var numericField = tree.fields[1];
+
+    tree.root.children[0].value = 6;
+
+    // No caching has been performed yet so the value should be correct.
+    assertEquals(numericField.toNumber(tree.root), 14);
+
+    tree.root.children[0].value = 0;
+
+    // The value was cached upon retrieval, but the cache was not invalidated
+    // after the update.
+    assertEquals(numericField.toNumber(tree.root), 14);
+
+    tree.root.children[0].invalidateFieldCache();
+
+    // The value should be correct again after the invalidation.
+    assertEquals(numericField.toNumber(tree.root), 8);
+  });
+});
+</script>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2015 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<link rel="import" href="/core/test_utils.html">
+<link rel="import" href="/core/trace_model/used_memory_tree.html">
+
+<script>
+'use strict';
+
+tv.b.unittest.testSuite(function() {
+  var UsedMemoryTree = tv.c.trace_model.UsedMemoryTree;
+  var UsedMemoryTreeNode = tv.c.trace_model.UsedMemoryTreeNode;
+
+  test('checkProtectionFlagsToString', function() {
+    var f = UsedMemoryTreeNode.protectionFlagsToString;
+
+    assertEquals(f(0), '---');
+    assertEquals(f(1), '--x');
+    assertEquals(f(2), '-w-');
+    assertEquals(f(4), 'r--');
+    assertEquals(f(5), 'r-x');
+    assertEquals(f(6), 'rw-');
+    assertEquals(f(7), 'rwx');
+  });
+
+  test('checkUsedMemoryTreeLayout', function() {
+    var tree = new UsedMemoryTree();
+    // The tree is actually constructed when it's assigned a list of mmaps.
+    tree.mmaps = [];
+
+    assertNotUndefined(tree.root);
+    assertTrue(Object.keys(tree.nodes).length > 0);
+    assertTrue(tree.fields.length > 0);
+
+    // Check top-level node names.
+    assertEquals(tree.root.userFriendlyName, 'Total');
+    assertEquals(tree.root.children[0].userFriendlyName, 'Anon');
+    assertEquals(tree.root.children[1].children[0].children[1]
+        .userFriendlyName, 'JIT');
+
+    // Check that 'Other' nodes are appended to non-leaf nodes.
+    assertEquals(tree.root.children[tree.root.children.length - 1]
+        .userFriendlyName, 'Other');
+    assertEquals(tree.root.children[1].children[
+        tree.root.children[1].children.length - 1].userFriendlyName, 'Other');
+
+    // Check that children are properly linked to their parents.
+    assertUndefined(tree.root.parent);
+    assertEquals(tree.root.children[1].parent, tree.root);
+    assertEquals(tree.root.children[2].children[0].parent,
+        tree.root.children[2]);
+  });
+
+  test('checkUsedMemoryTreeSizes_zeroMmaps', function() {
+    var tree = new UsedMemoryTree();
+    tree.mmaps = [];
+
+    for (var i = 0; i < tree.fields.length; i++) {
+      assertEquals(tree.fields[i].toString(tree.root), '0.0 B');
+      assertEquals(tree.fields[i].toString(tree.root.children[0]), '0.0 B');
+      for (var key in tree.nodes) {
+        assertEquals(tree.fields[i].toString(tree.nodes[key]), '0.0 B');
+      }
+    }
+  });
+
+  test('checkUsedMemoryTreeSizes_oneMmap', function() {
+    var tree = new UsedMemoryTree();
+    tree.mmaps = [
+      {
+        'start_address': '123abc',
+        'size_in_bytes': '456def',
+        'protection_flags': 5,
+        'mapped_file': '/dev/ashmem/dalvik/rest/of/path',
+        'mapped_file_offset': '80',
+        'byte_stats': {
+          'rss': '8',
+          'pss': '9',
+          'private': 'a',
+          'shared': 'b'
+        }
+      }
+    ];
+
+    // Check that the totals were updated.
+    assertEquals(tree.fields[0].toString(tree.root), '8.0 B');
+    assertEquals(tree.fields[1].toString(tree.root), '9.0 B');
+    assertEquals(tree.fields[2].toString(tree.root), '10.0 B');
+    assertEquals(tree.fields[3].toString(tree.root), '11.0 B');
+
+    // Check that the mmap was assigned to Dalvik JIT and nothing else.
+    for (var key in tree.nodes) {
+      var node = tree.nodes[key];
+      if (!node.mmaps)
+        continue;
+      assertEquals(node.mmaps.length, key == '/ashmem/dalvik/jit/' ? 1 : 0);
+    }
+  });
+
+  test('checkUsedMemoryTreeSizes_multipleMmaps', function() {
+    var tree = new UsedMemoryTree();
+    tree.mmaps = [
+      {
+        'start_address': '200',
+        'size_in_bytes': '150',
+        'protection_flags': 6,
+        'mapped_file': '[stack:20310]',
+        'mapped_file_offset': '0',
+        'byte_stats': {
+          'rss': '50',
+          'pss': '50',
+          'private': '50',
+          'shared': '0'
+        }
+      },
+      {
+        'start_address': '350',
+        'size_in_bytes': '250',
+        'protection_flags': 6,
+        'mapped_file': '[stack:20311]',
+        'mapped_file_offset': '0',
+        'byte_stats': {
+          'rss': '100',
+          'pss': '80',
+          'private': '60',
+          'shared': '40'
+        }
+      },
+      {
+        'start_address': '5a0',
+        'size_in_bytes': 'b00',
+        'protection_flags': 4,
+        'mapped_file': '',
+        'mapped_file_offset': '0',
+        'byte_stats': {
+          'rss': '300',
+          'pss': '300',
+          'private': '300',
+          'shared': '0'
+        }
+      }
+    ];
+
+    // Check that the totals were updated.
+    assertEquals(tree.fields[0].toString(tree.root), '1.1 KiB');
+    assertEquals(tree.fields[1].toString(tree.root), '976.0 B');
+    assertEquals(tree.fields[2].toString(tree.root), '944.0 B');
+    assertEquals(tree.fields[3].toString(tree.root), '64.0 B');
+
+    // Check that the mmaps were assigned to the correct components.
+    assertEquals(tree.nodes['/anon/stack/'].mmaps.length, 2);
+    assertEquals(tree.nodes['/anon/other/'].mmaps.length, 1);
+  });
+});
+</script>

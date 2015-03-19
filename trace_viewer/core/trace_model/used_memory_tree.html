@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2015 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<link rel="import" href="/core/trace_model/memory_tree.html">
+
+<script>
+'use strict';
+
+/**
+ * @fileoverview Provides classes for representing the hierarchy of used memory.
+ */
+tv.exportTo('tv.c.trace_model', function() {
+
+  /**
+   * @constructor
+   * @extends {MemoryTreeNode}
+   */
+  var UsedMemoryTreeNode = function(rule, opt_parent) {
+    tv.c.trace_model.MemoryTreeNode.call(this, rule.name, rule.userFriendlyName,
+        opt_parent);
+    this.rule = rule;
+
+    var subRules = rule.subRules;
+    if (!subRules) {
+      // Leaf node.
+      this.mmaps = [];
+      return;
+    }
+
+    this.children = [];
+    for (var i = 0; i < subRules.length; i++) {
+      this.children.push(new UsedMemoryTreeNode(subRules[i], this));
+    }
+  };
+
+  UsedMemoryTreeNode.prototype = {
+    __proto__: tv.c.trace_model.MemoryTreeNode.prototype,
+
+    addMmap: function(mmap) {
+      if (!this.children) {
+        // Leaf node.
+        this.mmaps.push(mmap);
+        this.invalidateFieldCache();
+        return;
+      }
+
+      // Find the right child that this mmap belongs to.
+      for (var i = 0; i < this.children.length; i++) {
+        var child = this.children[i];
+        if (child.matchesMmap_(mmap)) {
+          child.addMmap(mmap);
+          return;
+        }
+      }
+
+      // This should never happen because of the explicit 'Other' rules.
+      throw new Error('Unreachable');
+    },
+
+    matchesMmap_: function(mmap) {
+      var conditions = this.rule.conditions;
+
+      if (conditions.file) {
+        if (!conditions.file.test(mmap.mapped_file)) {
+          return false;
+        }
+      }
+
+      if (conditions.prot) {
+        var protectionFlagsString = UsedMemoryTreeNode.protectionFlagsToString(
+            mmap.protection_flags);
+        if (!conditions.prot.test(protectionFlagsString)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+  };
+
+  UsedMemoryTreeNode.protectionFlagsToString = function(flags) {
+    return ((flags & 4) ? 'r' : '-') + ((flags & 2) ? 'w' : '-') +
+        ((flags & 1) ? 'x' : '-');
+  };
+
+  /**
+   * @constructor
+   * @extends {NumericMemoryTreeFieldSpecifier}
+   */
+  var UsedMemoryTreeFieldSpecifier = function(userFriendlyName, byteStatsKey) {
+    tv.c.trace_model.NumericMemoryTreeFieldSpecifier.call(
+        this,
+        userFriendlyName.toLowerCase().replace(' ', '_'),
+        userFriendlyName,
+        byteStatsKey,
+        tv.c.trace_model.NumericMemoryTreeFieldSpecifier.SIZE_FORMATTER);
+    this.byteStatsKey_ = byteStatsKey;
+  };
+
+  UsedMemoryTreeFieldSpecifier.prototype = {
+    __proto__: tv.c.trace_model.NumericMemoryTreeFieldSpecifier.prototype,
+
+    getNodeNumber: function(node) {
+      var sum = 0;
+      for (var i = 0; i < node.mmaps.length; i++) {
+        var mmap = node.mmaps[i];
+        sum += parseInt(mmap.byte_stats[this.byteStatsKey_], 16);
+      }
+      return sum;
+    }
+  };
+
+  /**
+   * A tree representing the hierarchy of used memory (derived from memory maps)
+   * together with its fields.
+   * @constructor
+   * @extends {MemoryTree}
+   */
+  function UsedMemoryTree() {
+    tv.c.trace_model.MemoryTree.call(this);
+    this.fields = UsedMemoryTree.FIELD_SPECIFIERS;
+    this.mmaps_ = undefined;
+  };
+
+  UsedMemoryTree.prototype = {
+    __proto__: tv.c.trace_model.MemoryTree.prototype,
+
+    get mmaps() {
+      return this.mmaps_;
+    },
+
+    set mmaps(mmaps) {
+      this.mmaps_ = mmaps;
+
+      this.root = new UsedMemoryTreeNode(UsedMemoryTree.CLASSIFICATION_RULES);
+      for (var i = 0; i < mmaps.length; i++) {
+        this.root.addMmap(mmaps[i]);
+      }
+    }
+  };
+
+  var finalizeRulesRecursively = function(rule) {
+    if (!rule.subRules) {
+      return;
+    }
+
+    // Add an 'Other' child that will match all mmaps.
+    rule.subRules.push({
+      'userFriendlyName': 'Other',
+      'conditions': {}
+    });
+
+    // Finalize all sub-rules.
+    for (var i = 0; i < rule.subRules.length; i++) {
+      var subRule = rule.subRules[i];
+      var subName = subRule.userFriendlyName.toLowerCase().replace(' ', '_');
+      subRule.name = rule.name + subName + '/';
+      finalizeRulesRecursively(subRule);
+    }
+  };
+
+  var finalizeRules = function(root) {
+    root.name = '/';
+    finalizeRulesRecursively(root);
+    return root;
+  };
+
+  /**
+   * Rules for classifying process memory maps.
+   */
+  UsedMemoryTree.CLASSIFICATION_RULES = finalizeRules({
+    'userFriendlyName': 'Total',
+    'conditions': {},
+    'subRules': [
+      {
+        'userFriendlyName': 'Anon',
+        'conditions': {
+          'file': /(^$)|(^\[)/
+        },
+        'subRules': [
+          {
+            'userFriendlyName': 'stack',
+            'conditions': {
+              'file': /\[stack/
+            }
+          },
+          {
+            'userFriendlyName': 'libc malloc',
+            'conditions': {
+              'file': /libc_malloc/
+            }
+          },
+          {
+            'userFriendlyName': 'JIT',
+            'conditions': {
+              'prot': /r.x/
+            }
+          }
+        ]
+      },
+      {
+        'userFriendlyName': 'Ashmem',
+        'conditions': {
+          'file': /^\/dev\/ashmem/
+        },
+        'subRules': [
+          {
+            'userFriendlyName': 'Dalvik',
+            'conditions': {
+              'file': /^\/dev\/ashmem\/dalvik/
+            },
+            'subRules': [
+              {
+                'userFriendlyName': 'Java Heap',
+                'conditions': {
+                  'file': /dalvik-heap/
+                }
+              },
+              {
+                'userFriendlyName': 'JIT',
+                'conditions': {
+                  'prot': /r.x/
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        'userFriendlyName': 'Libs',
+        'conditions': {
+          'file': /(\.so)|(\.apk)|(\.jar)/
+        },
+        'subRules': [
+          {
+            'userFriendlyName': 'Native',
+            'conditions': {
+              'file': /\.so/
+            }
+          },
+          {
+            'userFriendlyName': 'APKs',
+            'conditions': {
+              'file': /\.apk/
+            }
+          },
+          {
+            'userFriendlyName': 'JARs',
+            'conditions': {
+              'file': /\.jar/
+            }
+          }
+        ]
+      },
+      {
+        'userFriendlyName': 'Devices',
+        'conditions': {
+          'file': /^\/dev\//
+        },
+        'subRules': [
+          {
+            'userFriendlyName': 'GPU',
+            'conditions': {
+              'file': /(nv)|(mali)|(kgsl)/
+            }
+          }
+        ]
+      }
+    ]
+  });
+
+  UsedMemoryTree.FIELD_SPECIFIERS = [
+    new UsedMemoryTreeFieldSpecifier('RSS', 'rss'),
+    new UsedMemoryTreeFieldSpecifier('PSS', 'pss'),
+    new UsedMemoryTreeFieldSpecifier('Private memory', 'private'),
+    new UsedMemoryTreeFieldSpecifier('Shared memory', 'shared')
+  ];
+
+  return {
+    UsedMemoryTreeNode: UsedMemoryTreeNode,
+    UsedMemoryTreeFieldSpecifier: UsedMemoryTreeFieldSpecifier,
+    UsedMemoryTree: UsedMemoryTree
+  };
+});
+</script>

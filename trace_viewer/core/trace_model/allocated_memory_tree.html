@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2015 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<link rel="import" href="/core/trace_model/memory_tree.html">
+
+<script>
+'use strict';
+
+/**
+ * @fileoverview Provides classes for representing the hierarchy of allocated
+ *     memory.
+ */
+tv.exportTo('tv.c.trace_model', function() {
+
+  /**
+   * @constructor
+   * @extends {MemoryTreeNode}
+   */
+  var AllocatedMemoryTreeNode = function(allocatorDump, opt_parent) {
+    tv.c.trace_model.MemoryTreeNode.call(
+        this,
+        allocatorDump.name,
+        AllocatedMemoryTreeNode.extractComponentName(allocatorDump),
+        opt_parent);
+    this.allocatorDump = allocatorDump;
+
+    if (allocatorDump.children) {
+      this.children = [];
+      for (var i = 0; i < allocatorDump.children.length; i++) {
+        this.children.push(new AllocatedMemoryTreeNode(
+            allocatorDump.children[i], this));
+      }
+    }
+  };
+
+  AllocatedMemoryTreeNode.prototype = {
+    __proto__: tv.c.trace_model.MemoryTreeNode.prototype
+  };
+
+  /**
+   * Extracts component name from the full name of an allocator dump. For
+   * example, if the full name of a dump is 'oilpan/general' and the name of its
+   * parent is 'oilpan', then the component name of the dump is 'general'.
+   */
+  AllocatedMemoryTreeNode.extractComponentName = function(allocatorDump) {
+    if (allocatorDump.name.indexOf(allocatorDump.parent + '/') === 0) {
+      return allocatorDump.name.substring(allocatorDump.parent.length + 1);
+    } else {
+      return allocatorDump.name;
+    }
+  };
+
+  /**
+   * @constructor
+   * @extends {NumericMemoryTreeFieldSpecifier}
+   */
+  var AllocatedMemoryTreeFieldSpecifier = function(userFriendlyName,
+      allocatorDumpKey, opt_numberFormatter) {
+    tv.c.trace_model.NumericMemoryTreeFieldSpecifier.call(
+        this,
+        userFriendlyName.toLowerCase().replace(' ', '_'),
+        userFriendlyName,
+        allocatorDumpKey,
+        opt_numberFormatter);
+    this.allocatorDumpKey_ = allocatorDumpKey;
+  };
+
+  AllocatedMemoryTreeFieldSpecifier.prototype = {
+    __proto__: tv.c.trace_model.NumericMemoryTreeFieldSpecifier.prototype,
+
+    getNodeNumber: function(node) {
+      return parseInt(node.allocatorDump[this.allocatorDumpKey_], 16);
+    },
+
+    shouldSumChildren: function(node) {
+      // Allow the values in non-leaf nodes to differ from sums of their
+      // children's values.
+      return !!node.children &&
+          node.allocatorDump[this.allocatorDumpKey_] === undefined;
+    }
+  };
+
+  /**
+   * A tree representing a hierarchy of allocated memory (for a single
+   * allocator, e.g. Oilpan) together with its fields.
+   * @constructor
+   * @extends {MemoryTree}
+   */
+  var AllocatedMemoryTree = function(allocatorName) {
+    tv.c.trace_model.MemoryTree.call(this);
+    this.allocatorName = allocatorName;
+    this.fields = AllocatedMemoryTree.FIELD_SPECIFIERS;
+    this.allocatorDump_ = undefined;
+  };
+
+  AllocatedMemoryTree.prototype = {
+    __proto__: tv.c.trace_model.MemoryTree.prototype,
+
+    get allocatorDump() {
+      return this.allocatorDump_;
+    },
+
+    set allocatorDump(allocatorDump) {
+      this.allocatorDump_ = allocatorDump;
+      this.root = new AllocatedMemoryTreeNode(allocatorDump);
+    }
+  };
+
+  /**
+   * Parse a list of flattened allocator dumps (coming from a ProcessMemoryDump
+   * trace events) into a list of AllocatedMemoryTree objects.
+   */
+  AllocatedMemoryTree.parseTrees = function(flattenedAllocatorDumps) {
+    // Ensure that the roots as well as the descendant dumps are sorted.
+    var names = Object.keys(flattenedAllocatorDumps);
+    names.sort();
+
+    // Link parent dumps to their children.
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i];
+      var dump = flattenedAllocatorDumps[name];
+      dump.name = name;
+
+      if (!dump.parent) {
+        // A root node.
+        continue;
+      }
+
+      var parentDump = flattenedAllocatorDumps[dump.parent];
+      if (!parentDump.children) {
+        parentDump.children = [];
+      }
+      parentDump.children.push(dump);
+    }
+
+    // Build the trees from roots.
+    var trees = [];
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i];
+      var dump = flattenedAllocatorDumps[name];
+
+      if (dump.parent) {
+        // A non-root node.
+        continue;
+      }
+
+      var tree = new AllocatedMemoryTree(name);
+      tree.allocatorDump = dump;
+      trees.push(tree);
+    }
+
+    return trees;
+  };
+
+  AllocatedMemoryTree.FIELD_SPECIFIERS = [
+    new AllocatedMemoryTreeFieldSpecifier('Physical size', 'physical_size',
+        tv.c.trace_model.NumericMemoryTreeFieldSpecifier.SIZE_FORMATTER),
+    new AllocatedMemoryTreeFieldSpecifier('Allocated objects count',
+        'allocated_objects_count'),
+    new AllocatedMemoryTreeFieldSpecifier('Allocated objects size',
+        'allocated_objects_size',
+        tv.c.trace_model.NumericMemoryTreeFieldSpecifier.SIZE_FORMATTER)
+  ];
+
+  return {
+    AllocatedMemoryTreeNode: AllocatedMemoryTreeNode,
+    AllocatedMemoryTreeFieldSpecifier: AllocatedMemoryTreeFieldSpecifier,
+    AllocatedMemoryTree: AllocatedMemoryTree
+  };
+});
+</script>

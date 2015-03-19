@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2015 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<link rel="import" href="/core/test_utils.html">
+<link rel="import" href="/core/trace_model/allocated_memory_tree.html">
+
+<script>
+'use strict';
+
+tv.b.unittest.testSuite(function() {
+  var AllocatedMemoryTree = tv.c.trace_model.AllocatedMemoryTree;
+  var AllocatedMemoryTreeNode = tv.c.trace_model.AllocatedMemoryTreeNode;
+
+  test('checkExtractComponentName', function() {
+    var f = AllocatedMemoryTreeNode.extractComponentName;
+
+    // Don't extract
+    assertEquals(f({name: 'v8', parent: ''}), 'v8');
+    assertEquals(f({name: 'gen', parent: 'v8'}), 'gen');
+    assertEquals(f({name: 'v7/gen', parent: 'v8'}), 'v7/gen');
+
+    // Extract.
+    assertEquals(f({name: 'v8/gen', parent: 'v8'}), 'gen');
+    assertEquals(f({name: 'v8/gen/b1', parent: 'v8/gen'}), 'b1');
+    assertEquals(f({name: 'v8/gen/b1/e_priv', parent: 'v8/gen/b1'}), 'e_priv');
+  });
+
+  test('checkParseTrees_noTrees', function() {
+    var trees = AllocatedMemoryTree.parseTrees({});
+    assertEquals(trees.length, 0);
+  });
+
+  test('checkParseTrees_singletonTree', function() {
+    var trees = AllocatedMemoryTree.parseTrees({
+      'oilpan': {
+        'parent': '',
+        'physical_size': 'aaa',
+        'allocated_objects_count': '10',
+        'allocated_objects_size': '80'
+      }
+    });
+
+    assertEquals(trees.length, 1);
+
+    assertEquals(trees[0].allocatorName, 'oilpan');
+    assertEquals(trees[0].fields[0].toString(trees[0].root), '2.7 KiB');
+    assertEquals(trees[0].fields[1].toString(trees[0].root), '16');
+    assertEquals(trees[0].fields[2].toString(trees[0].root), '128.0 B');
+  });
+
+  test('checkParseTrees_deepTree', function() {
+    var trees = AllocatedMemoryTree.parseTrees({
+      'oilpan/general': {
+        'parent': 'oilpan'
+      },
+      'oilpan/general/bucket1': {
+        'parent': 'oilpan/general',
+        'physical_size': '5',
+        'allocated_objects_count': '10',
+        'allocated_objects_size': '80'
+      },
+      'oilpan/general/bucket2': {
+        'parent': 'oilpan/general',
+        'physical_size': '5',
+        'allocated_objects_count': '12',
+        'allocated_objects_size': '50'
+      },
+      'oilpan': {
+        'parent': ''
+      },
+      'oilpan/hashtables': {
+        'parent': 'oilpan',
+        'physical_size': 'f',
+        'allocated_objects_count': '5',
+        'allocated_objects_size': '9'
+      }
+    });
+
+    assertEquals(trees.length, 1);
+    assertEquals(trees[0].allocatorName, 'oilpan');
+    var root = trees[0].root;
+
+    assertEquals(root.userFriendlyName, 'oilpan');
+    assertEquals(root.children[0].userFriendlyName, 'general');
+    assertEquals(root.children[0].children[0].userFriendlyName, 'bucket1');
+    assertEquals(root.children[0].children[1].userFriendlyName, 'bucket2');
+    assertEquals(root.children[1].userFriendlyName, 'hashtables');
+
+    assertEquals(root.children.length, 2);
+    assertEquals(root.children[0].children.length, 2);
+    assertUndefined(root.children[0].children[0].children);
+    assertUndefined(root.children[0].children[1].children);
+    assertUndefined(root.children[1].children);
+
+    assertEquals(trees[0].fields[0].toString(trees[0].root), '25.0 B');
+    assertEquals(trees[0].fields[1].toString(trees[0].root), '39');
+    assertEquals(trees[0].fields[2].toString(trees[0].root), '217.0 B');
+  });
+
+  test('checkParseTrees_multipleTrees', function() {
+    var trees = AllocatedMemoryTree.parseTrees({
+      'skia/layers': {
+        'parent': 'skia'
+      },
+      'oilpan': {
+        'parent': ''
+      },
+      'v8': {
+        'parent': ''
+      },
+      'skia': {
+        'parent': ''
+      }
+    });
+
+    assertEquals(trees.length, 3);
+
+    assertEquals(trees[0].allocatorName, 'oilpan');
+    assertEquals(trees[0].root.userFriendlyName, 'oilpan');
+    assertUndefined(trees[0].root.children);
+
+    assertEquals(trees[1].allocatorName, 'skia');
+    assertEquals(trees[1].root.userFriendlyName, 'skia');
+    assertEquals(trees[1].root.children.length, 1);
+    assertEquals(trees[1].root.children[0].userFriendlyName, 'layers');
+    assertUndefined(trees[1].root.children[0].children);
+
+    assertEquals(trees[2].allocatorName, 'v8');
+    assertEquals(trees[2].root.userFriendlyName, 'v8');
+    assertUndefined(trees[2].root.children);
+  });
+
+  test('checkParseTrees_differentParentValue', function() {
+    var trees = AllocatedMemoryTree.parseTrees({
+      'v8': {
+        'parent': '',
+        'physical_size': '20',
+        'allocated_objects_count': '2'
+      },
+      'v8/bucket1': {
+        'parent': 'v8',
+        'physical_size': '5',
+        'allocated_objects_count': '1',
+        'allocated_objects_size': '3'
+      },
+      'v8/bucket2': {
+        'parent': 'v8',
+        'physical_size': '5',
+        'allocated_objects_count': '2',
+        'allocated_objects_size': '4'
+      }
+    });
+
+    assertEquals(trees.length, 1);
+    assertEquals(trees[0].allocatorName, 'v8');
+    var root = trees[0].root;
+
+    assertEquals(root.children.length, 2);
+
+    // Parent value greater than the sum.
+    assertEquals(trees[0].fields[0].toString(root), '32.0 B');
+    assertEquals(trees[0].fields[0].toString(root.children[0]), '5.0 B');
+    assertEquals(trees[0].fields[0].toString(root.children[1]), '5.0 B');
+
+    // Parent value less than the sum.
+    assertEquals(trees[0].fields[1].toString(root), '2');
+    assertEquals(trees[0].fields[1].toString(root.children[0]), '1');
+    assertEquals(trees[0].fields[1].toString(root.children[1]), '2');
+
+    // Parent value equal to the sum (default behavior).
+    assertEquals(trees[0].fields[2].toString(root), '7.0 B');
+    assertEquals(trees[0].fields[2].toString(root.children[0]), '3.0 B');
+    assertEquals(trees[0].fields[2].toString(root.children[1]), '4.0 B');
+  });
+});
+</script>
