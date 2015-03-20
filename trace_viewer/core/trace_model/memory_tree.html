@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2015 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<link rel="import" href="/base/base.html">
+
+<script>
+'use strict';
+
+/**
+ * @fileoverview Provides classes for representing memory hierarchy.
+ */
+tv.exportTo('tv.c.trace_model', function() {
+
+  /**
+   * @constructor
+   */
+  var MemoryTreeNode = function(name, userFriendlyName, opt_parent) {
+    this.name = name;
+    this.userFriendlyName = userFriendlyName;
+    this.parent = opt_parent || undefined;
+    this.children = undefined;
+    this.fieldCache_ = undefined;
+  };
+
+  MemoryTreeNode.prototype = {
+    invalidateFieldCache: function() {
+      for (var node = this; node; node = node.parent) {
+        node.fieldCache_ = undefined;
+      }
+    },
+
+    get fieldCache() {
+      if (!this.fieldCache_) {
+        this.fieldCache_ = {};
+      }
+      return this.fieldCache_;
+    }
+  };
+
+  /**
+   * An object which specifies how a certain field (e.g. 'Physical size') of all
+   * nodes in a memory tree is calculated and displayed.
+   * @constructor
+   */
+  var MemoryTreeFieldSpecifier = function(name, userFriendlyName) {
+    this.name = name;
+    this.userFriendlyName = userFriendlyName;
+  };
+
+  MemoryTreeFieldSpecifier.prototype = {
+    toString: function(node) {
+      throw new Error('toString() method not implemented');
+    }
+  };
+
+  /**
+   * A field specifier for numeric fields with support for caching the value of
+   * a field in a node and recursively calculating its value as a sum of the
+   * values of the field in the node's children.
+   * @constructor
+   * @extends {MemoryTreeFieldSpecifier}
+   */
+  var NumericMemoryTreeFieldSpecifier = function(name, userFriendlyName,
+      cacheKey, opt_numberFormatter) {
+    MemoryTreeFieldSpecifier.call(this, name, userFriendlyName);
+    this.cacheKey_ = cacheKey;
+    this.numberFormatter_ = opt_numberFormatter || undefined;
+  };
+
+  NumericMemoryTreeFieldSpecifier.prototype = {
+    __proto__: MemoryTreeFieldSpecifier.prototype,
+
+    toString: function(node) {
+      var numericValue = this.toNumber(node);
+      return this.numberFormatter_ ?
+          this.numberFormatter_(numericValue) : numericValue.toString();
+    },
+
+    toNumber: function(node) {
+      if (!(this.cacheKey_ in node.fieldCache)) {
+        var cachedValue;
+        if (this.shouldSumChildren(node)) {
+          cachedValue = 0;
+          for (var i = 0; i < node.children.length; i++) {
+            cachedValue += this.toNumber(node.children[i]);
+          }
+        } else {
+          cachedValue = this.getNodeNumber(node);
+        }
+        node.fieldCache[this.cacheKey_] = cachedValue;
+      }
+      return node.fieldCache[this.cacheKey_];
+    },
+
+    /**
+     * @return {boolean} True if the value of this field for the given node
+     *     should be calculated recursively as the sum of the values of this
+     *     field for the node's children.
+     */
+    shouldSumChildren: function(node) {
+      return !!node.children;
+    },
+
+    /**
+     * @return {number} Get the value of this field for the given node.
+     */
+    getNodeNumber: function(node) {
+      throw new Error('getNodeValue() method not implemented');
+    }
+  };
+
+  NumericMemoryTreeFieldSpecifier.SIZE_UNITS = ['Ki', 'Mi', 'Gi', 'Ti'];
+
+  /**
+   * Formatter for memory size (e.g. 4300 -> '4.2 KiB').
+   */
+  NumericMemoryTreeFieldSpecifier.SIZE_FORMATTER = function(size) {
+    var unit = '';
+    for (var i = 0; i < NumericMemoryTreeFieldSpecifier.SIZE_UNITS.length;
+         i++) {
+      if (size < 1024)
+        break;
+      size /= 1024;
+      unit = NumericMemoryTreeFieldSpecifier.SIZE_UNITS[i];
+    }
+    return size.toFixed(1) + ' ' + unit + 'B';
+  };
+
+  /**
+   * A tree representing memory hierarchy together with its fields.
+   * @constructor
+   */
+  function MemoryTree() {
+    this.fields_ = [];
+    this.root_ = undefined;
+    this.nodes_ = undefined;
+  };
+
+  MemoryTree.prototype = {
+    __proto__: Object.prototype,
+
+    get fields() {
+      return this.fields_;
+    },
+
+    set fields(fields) {
+      this.fields_ = fields;
+    },
+
+    get root() {
+      return this.root_;
+    },
+
+    set root(root) {
+      this.root_ = root;
+      this.nodes_ = undefined;
+
+      if (root) {
+        this.nodes_ = {};
+        this.storeNodeNames_(root);
+      }
+    },
+
+    get nodes() {
+      return this.nodes_;
+    },
+
+    storeNodeNames_: function(node) {
+      this.nodes_[node.name] = node;
+
+      if (!node.children) {
+        return;
+      }
+
+      for (var i = 0; i < node.children.length; i++) {
+        this.storeNodeNames_(node.children[i]);
+      }
+    }
+  };
+
+  return {
+    MemoryTreeNode: MemoryTreeNode,
+    MemoryTreeFieldSpecifier: MemoryTreeFieldSpecifier,
+    NumericMemoryTreeFieldSpecifier: NumericMemoryTreeFieldSpecifier,
+    MemoryTree: MemoryTree
+  };
+});
+
+</script>
