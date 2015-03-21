@@ -12,6 +12,16 @@ found in the LICENSE file.
 
 <template id="record-selection-dialog-template">
   <style>
+  .record-selection-dialog {
+    border: 1px solid black;
+  }
+
+  .record-selection-dialog-adv-mode {
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
   .categories-column-view {
     display: -webkit-flex;
     -webkit-flex-direction: column;
@@ -20,6 +30,8 @@ found in the LICENSE file.
     min-height: 0;
     min-width: 0;
     opacity: 1;
+    border: 1px solid black;
+    border-top: none;
     transition: max-height 1s ease, max-width 1s ease, opacity 1s ease;
     will-change: opacity;
   }
@@ -38,6 +50,13 @@ found in the LICENSE file.
 
   .category-presets {
     padding: 4px;
+  }
+
+  .category-presets-hidden {
+    max-height: 0;
+    max-width: 0;
+    opacity: 0;
+    padding: 0 0 0 0;
   }
 
   .category-description {
@@ -77,7 +96,6 @@ found in the LICENSE file.
     -webkit-flex-direction: reverse;
     padding: 4px;
     border-bottom: 2px solid #ddd;
-    border-top: 2px solid #ddd;
   }
 
   .default-disabled-categories {
@@ -110,6 +128,29 @@ found in the LICENSE file.
 
   .group-selectors button {
     padding: 1px;
+  }
+
+  .tabstrip {
+    -webkit-flex: 0 0 auto;
+    -webkit-flex-direction: row;
+    display: -webkit-flex;
+    min-height: 10px;
+    width: inherit;
+    padding: 0 5px 0 5px;
+  }
+
+  .tab-label {
+    display: inline;
+    -webkit-writing-mode: horizontal-bt;
+    padding: 10px 20px 10px 20px;
+  }
+
+  .tab-label[selected=true] {
+    background-color: rgb(210, 210, 210);
+    border: 1px solid black;
+    border-bottom: none;
+    padding: 10px 20px 10px 20px;
+    margin-left: -5px;
   }
   </style>
 
@@ -176,6 +217,12 @@ tv.exportTo('tv.e.about_tracing', function() {
     {title: 'Manually select settings',
       categoryFilter: []}
   ];
+  var DEFAULT_TAB_TITLES = [
+    {title: 'Presets', selected: true, enabled: true, class: 'tab-label',
+      callback: true},
+    {title: 'Advanced', selected: false, enabled: true, class: 'tab-label',
+      callback: false}
+  ];
   var DEFAULT_CONTINUOUS_TRACING = true;
   var DEFAULT_SYSTEM_TRACING = false;
   var DEFAULT_SAMPLING_TRACING = false;
@@ -188,6 +235,14 @@ tv.exportTo('tv.e.about_tracing', function() {
       this.title = 'Record a new trace...';
 
       this.classList.add('record-dialog-overlay');
+
+      this.tabStrip_ = document.createElement('tab-strip');
+      this.tabStrip_.classList.add('tabstrip');
+      this.appendChild(this.tabStrip_);
+      this.presetTabEl_ = tv.b.ui.createTabStripItem(
+                              this, this.tabStrip_, DEFAULT_TAB_TITLES[0]);
+      this.advancedTabEl_ = tv.b.ui.createTabStripItem(
+                                this, this.tabStrip_, DEFAULT_TAB_TITLES[1]);
 
       var node = tv.b.instantiateTemplate('#record-selection-dialog-template',
           THIS_DOC);
@@ -211,7 +266,6 @@ tv.exportTo('tv.e.about_tracing', function() {
             return { label: p.title, value: p.categoryFilter };
           })));
 
-
       this.continuousTracingBn_ = tv.b.ui.createCheckBox(
           undefined, undefined,
           'recordSelectionDialog.useContinuousTracing', true,
@@ -229,7 +283,6 @@ tv.exportTo('tv.e.about_tracing', function() {
       this.tracingModesContainerEl_.appendChild(this.systemTracingBn_);
       this.tracingModesContainerEl_.appendChild(this.samplingTracingBn_);
 
-
       this.enabledCategoriesContainerEl_ =
           this.querySelector('.default-enabled-categories .categories');
 
@@ -242,7 +295,6 @@ tv.exportTo('tv.e.about_tracing', function() {
           this.querySelector('.default-disabled-categories'));
       this.createDefaultDisabledWarningDialog_(
           this.querySelector('.warning-default-disabled-categories'));
-      this.editCategoriesOpened_ = false;
 
       // TODO(chrishenry): When used with tv.b.ui.Overlay (such as in
       // chrome://tracing, this does not yet look quite right due to
@@ -308,8 +360,7 @@ tv.exportTo('tv.e.about_tracing', function() {
     },
 
     usingPreset_: function() {
-      return this.currentlyChosenPreset_.length > 0 ||
-             this.isPresetSelected_;
+      return this.currentlyChosenPreset_.length > 0;
     },
 
     get currentlyChosenPreset() {
@@ -321,77 +372,110 @@ tv.exportTo('tv.e.about_tracing', function() {
         throw new Error('RecordSelectionDialog.currentlyChosenPreset:' +
             ' preset must be an array.');
       this.currentlyChosenPreset_ = preset;
-      this.isPresetSelected_ = false;
-
-      if (this.currentlyChosenPreset_.length) {
-        this.isPresetSelected_ = true;
-        this.changeEditCategoriesState_(false);
-      } else {
-        this.updateCategoryColumnView_(true);
-        this.changeEditCategoriesState_(true);
-      }
-      this.updateManualSelectionView_();
-      this.updatePresetDescription_();
+      this.clearCategoryColumnView_();
+      this.updateActiveTab_();
     },
 
-    updateManualSelectionView_: function() {
+    showingPresetTab_: function() {
+      return this.presetTabActivated_;
+    },
+
+    updateTabContentsView_: function() {
       var classList = this.categoriesView_.classList;
-      if (!this.usingPreset_()) {
-        classList.remove('categories-column-view-hidden');
+      var presetClasslist = this.presetsEl_.classList;
+      var dialogClasslist =
+          this.querySelector('.record-selection-dialog').classList;
+      if (this.showingPresetTab_()) {
+        classList.add('categories-column-view-hidden');
+        presetClasslist.remove('category-presets-hidden');
+        dialogClasslist.remove('record-selection-dialog-adv-mode');
       } else {
-        if (this.editCategoriesOpened_)
-          classList.remove('categories-column-view-hidden');
-        else
-          classList.add('categories-column-view-hidden');
+        classList.remove('categories-column-view-hidden');
+        presetClasslist.add('category-presets-hidden');
+        dialogClasslist.add('record-selection-dialog-adv-mode');
       }
+    },
+
+    clearCategoryColumnView_: function() {
+      var inputs = this.querySelectorAll('.categories input');
+      for (var i = 0; i < inputs.length; ++i)
+        inputs[i].checked = false;
     },
 
     updateCategoryColumnView_: function(shouldReadFromSettings) {
-      var categorySet = this.querySelectorAll('.categories');
-      for (var i = 0; i < categorySet.length; ++i) {
-        var categoryGroup = categorySet[i].children;
-        for (var j = 0; j < categoryGroup.length; ++j) {
-          var categoryEl = categoryGroup[j].children[0];
-          categoryEl.checked = shouldReadFromSettings ?
-              tv.b.Settings.get(categoryEl.value, false, this.settings_key_) :
-              false;
+      if (this.showingPresetTab_())
+        return;
+
+      var inputs = this.querySelectorAll('.categories input');
+      for (var i = 0; i < inputs.length; ++i) {
+        var shouldSelectCategory = false;
+        var inputEl = inputs[i];
+        if (shouldReadFromSettings) {
+          shouldSelectCategory =
+              tv.b.Settings.get(inputEl.value, inputEl.checked,
+                                this.settings_key_);
+        } else {
+          if (this.currentlyChosenPreset_.indexOf(inputEl.value) !== -1)
+            shouldSelectCategory = true;
         }
+        inputEl.checked = shouldSelectCategory;
       }
     },
 
-    onClickEditCategories: function() {
-      if (!this.usingPreset_())
+    updateCustomizeButtonState_: function() {
+      if (!this.showingPresetTab_())
         return;
 
-      if (!this.editCategoriesOpened_) {
-        this.updateCategoryColumnView_(false);
-        for (var i = 0; i < this.currentlyChosenPreset_.length; ++i) {
-          var categoryEl = document.getElementById(
-              this.currentlyChosenPreset_[i]);
-          categoryEl.checked = true;
-        }
-      }
+      var inputs = this.querySelectorAll('.labeled-option input[type="radio"]');
+      if (!inputs)
+        return;
+      var btns = this.querySelectorAll('.labeled-option-customize');
+      if (!btns)
+        return;
 
-      this.changeEditCategoriesState_(!this.editCategoriesOpened_);
-      this.updateManualSelectionView_();
+      for (var i = 0; i < inputs.length; ++i) {
+        var inputEl = inputs[i];
+        var buttonEl = btns[i];
+        if (inputEl.checked)
+          buttonEl.disabled = false;
+        else
+          buttonEl.disabled = true;
+      }
+    },
+
+    updateActiveTab_: function() {
+      if (this.usingPreset_())
+        this.onActivatedTabChanged(undefined);
+      else
+        this.onActivatedTabChanged(this.advancedTabEl_);
+    },
+
+    updateActivatedTabView_: function(isAdvancedTabActivated) {
+      var shouldReadFromSettings =
+          !this.usingPreset_() && isAdvancedTabActivated;
+      this.updateCategoryColumnView_(shouldReadFromSettings);
+      this.updateTabContentsView_();
+      this.updatePresetDescription_();
+      this.updateCustomizeButtonState_();
       this.recordButtonEl_.focus();
     },
 
-    changeEditCategoriesState_: function(editCategoriesState) {
-      var presetOptionsGroup = this.querySelector('.labeled-option-group');
-      if (!presetOptionsGroup)
-        return;
+    onActivatedTabChanged: function(activeTab) {
+      var isAdvancedTabActivated = (activeTab === this.advancedTabEl_);
 
-      this.editCategoriesOpened_ = editCategoriesState;
-      if (this.editCategoriesOpened_)
-          presetOptionsGroup.classList.add('categories-expanded');
-      else
-          presetOptionsGroup.classList.remove('categories-expanded');
+      this.presetTabActivated_ = !isAdvancedTabActivated;
+      this.updateActivatedTabView_(isAdvancedTabActivated);
+      this.presetTabEl_.setAttribute('selected', !isAdvancedTabActivated);
+      this.advancedTabEl_.setAttribute('selected', isAdvancedTabActivated);
+    },
+
+    onClickCustomizeOption: function() {
+      this.onActivatedTabChanged(this.advancedTabEl_);
     },
 
     updatePresetDescription_: function() {
       var description = this.querySelector('.category-description');
-      if (this.usingPreset_()) {
+      if (this.showingPresetTab_()) {
         description.innerText = this.currentlyChosenPreset_;
         description.classList.remove('category-description-hidden');
       } else {
@@ -548,15 +632,12 @@ tv.exportTo('tv.e.about_tracing', function() {
         this.buildInputs_(disabledCategories, false,
             this.disabledCategoriesContainerEl_);
       }
+      this.updateActiveTab_();
     },
 
     updateSetting_: function(e) {
       var checkbox = e.target;
-      tv.b.Settings.set(checkbox.value, checkbox.checked, this.settings_key_);
-
-      // Change the current record mode to 'Manually select settings' from
-      // preset mode if and only if currently user is in preset record mode
-      // and user selects/deselects any category in 'Edit Categories' mode.
+      // Update the preset value with new modifications.
       if (this.usingPreset_()) {
         if (checkbox.checked) {
           this.currentlyChosenPreset_.push(checkbox.value);
@@ -564,12 +645,8 @@ tv.exportTo('tv.e.about_tracing', function() {
           var pos = this.currentlyChosenPreset_.lastIndexOf(checkbox.value);
           this.currentlyChosenPreset_.splice(pos, 1);
         }
-        var categoryEl = document.getElementById(
-            'category-preset-Manually-select-settings');
-        categoryEl.checked = true;
-        var description = this.querySelector('.category-description');
-        description.innerText = '';
-        description.classList.add('category-description-hidden');
+      } else {
+        tv.b.Settings.set(checkbox.value, checkbox.checked, this.settings_key_);
       }
     },
 
@@ -620,7 +697,7 @@ tv.exportTo('tv.e.about_tracing', function() {
 
         this.setWarningDialogOverlayText_([
           'Enabling the default disabled categories may have',
-          'performance and memory impact while tv.c.'
+          'performance and memory impact while tracing.'
         ]);
 
         evt.preventDefault();
