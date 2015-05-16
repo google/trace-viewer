@@ -109,12 +109,12 @@ found in the LICENSE file.
         <span class='title'>Display Item List</span>
         <span class='size'></span>
         <div class='export'>
-          <input class='skpfilename' type='text' value='skpicture.skp' />
-          <button class='skpexport'>Export SkPicture</button>
+          <input class='dlfilename' type='text' value='displayitemlist.json' />
+          <button class='dlexport'>Export display item list</button>
         </div>
         <div class='export'>
-          <input class='dlfilename' type='text' value='displayitemlist.json' />
-          <button class='dlexport'>Export Display Items</button>
+          <input class='skpfilename' type='text' value='skpicture.skp' />
+          <button class='skpexport'>Export list as SkPicture</button>
         </div>
       </header>
     </display-item-info>
@@ -166,15 +166,15 @@ tv.exportTo('tv.e.cc', function() {
           this.onDisplayItemListSelection_.bind(this));
       this.displayItemInfo_.appendChild(this.displayItemListView_);
 
-      this.skpFilename_ = this.querySelector('.skpfilename');
-      this.skpExportButton_ = this.querySelector('.skpexport');
-      this.skpExportButton_.addEventListener(
-          'click', this.onExportSkPictureClicked_.bind(this));
-
       this.displayListFilename_ = this.querySelector('.dlfilename');
       this.displayListExportButton_ = this.querySelector('.dlexport');
       this.displayListExportButton_.addEventListener(
           'click', this.onExportDisplayListClicked_.bind(this));
+
+      this.skpFilename_ = this.querySelector('.skpfilename');
+      this.skpExportButton_ = this.querySelector('.skpexport');
+      this.skpExportButton_.addEventListener(
+          'click', this.onExportSkPictureClicked_.bind(this));
 
       var leftPanel = this.querySelector('left-panel');
 
@@ -452,14 +452,14 @@ tv.exportTo('tv.e.cc', function() {
       link.dispatchEvent(event);
     },
 
-    onExportSkPictureClicked_: function() {
-      var rawData = atob(this.picture_.getBase64SkpData());
-      this.saveFile_(this.skpFilename_.value, rawData);
-    },
-
     onExportDisplayListClicked_: function() {
       var rawData = JSON.stringify(this.displayItemList_.items);
       this.saveFile_(this.displayListFilename_.value, rawData);
+    },
+
+    onExportSkPictureClicked_: function() {
+      var rawData = atob(this.picture_.getBase64SkpData());
+      this.saveFile_(this.skpFilename_.value, rawData);
     }
   };
 
